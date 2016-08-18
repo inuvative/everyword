@@ -3,7 +3,6 @@
 var _ = require('lodash');
 var Comment = require('./comment.model');
 var Homebase  = require('../homebase/homebase.model');
-var Feed = require('../homebase/feed.model');
 var FeedEntry = require('../homebase/feed.entry');
 
 // Get list of comments
@@ -36,15 +35,10 @@ exports.create = function(req, res) {
   Comment.create(req.body, function(err, comment) {
     if(err) { return handleError(res, err); }
     Comment.populate(comment, {path: 'user', model: 'User'}, function(err,comm) {
+		var entry = new FeedEntry({comment: comm._id, date: dt, user: comm.user});
+		entry.save();									
     	return res.status(201).json(comm);    	    	
     });
-//    	home.comments.push(comment);
-//    	home.save(function(err) {
-//    		if(err) { return handleError(res, err); }    		
-//    	    Comment.populate(comment, {path: 'user', model: 'User'}, function(err,comm) {
-//    	        return res.status(201).json(comm);    	    	
-//    	    })
-//    	});
   });
 };
 
@@ -57,6 +51,10 @@ exports.update = function(req, res) {
     var updated = _.merge(comment, req.body);
     updated.save(function (err) {
       if (err) { return handleError(res, err); }
+      FeedEntry.findOne({comment: comment._id}, function(err,entry){
+    	  entry.date = new Date();
+    	  entry.save();
+      });
       var opts = [{path: 'user', model: 'User'},{path: 'remarks.user', model: 'User'}];
       Comment.populate(comment,opts, function(err,comm) {
       	return res.status(200).json(comm);    	    	
@@ -76,6 +74,9 @@ exports.destroy = function(req, res) {
       if(err) { return handleError(res, err); }
       _.forEach(remarks, function(rem) {
     	  rem.remove();
+      });
+      FeedEntry.findOne({comment: comment._id}, function(err,entry){
+    	  entry.remove();
       });
       return res.status(200).send(req.params.id);
     });
