@@ -35,7 +35,7 @@ exports.create = function(req, res) {
   Comment.create(req.body, function(err, comment) {
     if(err) { return handleError(res, err); }
     Comment.populate(comment, {path: 'user', model: 'User'}, function(err,comm) {
-		var entry = new FeedEntry({comment: comm._id, date: dt, user: comm.user});
+		var entry = new FeedEntry({comment: comm._id, date: comm.date, user: comm.user});
 		entry.save();									
     	return res.status(201).json(comm);    	    	
     });
