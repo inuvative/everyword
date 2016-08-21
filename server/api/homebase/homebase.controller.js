@@ -12,6 +12,7 @@ var Reference = require('../reference/reference.model');
 var User = require('../user/user.model');
 var Feed = require('../homebase/feed.model');
 var FeedEntry = require('../homebase/feed.entry');
+var Like = require('../comment/like.model');
 
 // Get list of homebases
 exports.index = function(req, res) {
@@ -200,6 +201,19 @@ exports.getTags = function(req, res) {
 	    	return res.json(homebase.tags.slice(0,20));
 	    }
 	    return res.json(homebase.tags);
+	  });
+};
+
+exports.getLikes = function(req, res) {	  
+	  Like.find({ user: req.params.id},function (err, likes) {
+	    if(err) { return handleError(res, err); }    
+	    if(likes){
+	    	var comments=[];
+	    	for(var l in likes) {
+	    		comments.push(likes[l].comment);
+	    	}
+	    	return res.json(comments);
+	    }
 	  });
 };
 

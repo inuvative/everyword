@@ -1,9 +1,11 @@
 'use strict';
 
 var _ = require('lodash');
+var Like = require('./like.model');
 var Comment = require('./comment.model');
 var Homebase  = require('../homebase/homebase.model');
 var FeedEntry = require('../homebase/feed.entry');
+
 
 // Get list of comments
 exports.index = function(req, res) {
@@ -16,6 +18,7 @@ exports.index = function(req, res) {
 //  });
 
   function (err, comments) {
+	
     if(err) { return handleError(res, err); }
     return res.status(200).json(comments);
   });
@@ -64,16 +67,43 @@ exports.update = function(req, res) {
   });
 };
 
+//Updates an existing comment in the DB.
+exports.like = function(req, res) {
+  if(req.body._id) { delete req.body._id; }
+  Comment.findById(req.params.id).populate('likers').exec(function (err, comment) {
+    if (err) { return handleError(res, err); }
+    if(!comment) { return res.status(404).send('Not Found'); }
+    var likeEntry = new Like({user:req.body.user,comment: comment._id});
+    likeEntry.save(function(err,like){
+    	if(err) return handleError(res, err); 
+    	comment.likers.push(like._id)
+    	comment.likes += 1;
+        comment.save(function (err, comm) {
+            if (err) { return handleError(res, err); }
+            var opts = [{path: 'user', model: 'User'},{path: 'remarks.user', model: 'User'}];
+            Comment.populate(comm,opts, function(err,comm) {
+            	return res.status(200).json(comm);    	    	
+            });
+//            return res.status(200).json(comment);
+          });    	
+    })
+  });
+};
+
 // Deletes a comment from the DB.
 exports.destroy = function(req, res) {
-  Comment.findById(req.params.id).populate('remarks').exec(function (err, comment) {
+  Comment.findById(req.params.id).populate('remarks likers').exec(function (err, comment) {
     if(err) { return handleError(res, err); }
     if(!comment) { return res.status(404).send('Not Found'); }
-    var remarks = comment.remarks;
+    var remarks = comment.remarks = [];
+    var likers = comment.likers || [];
     comment.remove(function(err) {
       if(err) { return handleError(res, err); }
       _.forEach(remarks, function(rem) {
     	  rem.remove();
+      });
+      _.forEach(likers, function(like) {
+    	 like.remove(); 
       });
       FeedEntry.findOne({comment: comment._id}, function(err,entry){
     	  entry.remove();
