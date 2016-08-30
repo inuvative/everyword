@@ -11,9 +11,10 @@ User.find({}, function (err, users) {
     if(!users){
 	  User.create({
 		    provider: 'local',
-		    name: 'Test User',
-		    email: 'test@test.com',
-		    password: 'test'
+		    role: 'guest',
+		    name: 'Guest',
+		    email: 'guest@guest.com',
+		    password: 'guest'
 		  }, {
 		    provider: 'local',
 		    role: 'admin',
@@ -26,9 +27,13 @@ User.find({}, function (err, users) {
 		  );
     } else {
     	var adminExists=false;
+    	var guestExists=false;
     	for(var u in users ){
     		if(users[u].role==='admin'){
     			adminExists=true;
+    		}
+    		if(users[u].role==='guest'){
+    			guestExists=true;
     		}
     	}
     	if(!adminExists){
@@ -43,5 +48,18 @@ User.find({}, function (err, users) {
 		    }
 		  );
     	}
+    	if(!guestExists){
+    		User.create({
+		    provider: 'local',
+		    role: 'guest',
+		    name: 'Guest',
+		    email: 'guest@guest.com',
+		    password: 'guest'
+		  }, function() {
+		      console.log('Guest user created');
+		    }
+		  );
+    	}
+    	
     }
 });

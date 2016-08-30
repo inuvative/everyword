@@ -68,6 +68,14 @@ exports.findMessage = function(req, res) {
 	  });
 };
 
+exports.messageCount = function(req, res) {
+	  var user = req.params.user;
+	  Message.count({$and: [{to: user},{$or: [{'action.completed': false},{read: false}]}]},function (err, count) {
+	    if(err) { return handleError(res, err); }
+	    return res.json(count);
+	  });
+};
+
 // Updates an existing message in the DB.
 exports.update = function(req, res) {
   if(req.body._id) { delete req.body._id; }
@@ -116,7 +124,7 @@ exports.sendEmail = function(req, res) {
     	messageBody += '<a href="'+req.body.link+'">reset your password.</a>';
     	messageBody += '<br/>If you did not request this password change please feel free to ignore this email.';
     	messageBody += '<br/>This password reset is only valid for the next 24 hrs.';
-    	messageBody += '<br/>Thanks,<br/> Everyword Support Team';
+    	messageBody += '<br/>Thanks,<br/> Everyword Support Team<br/>';
     	messageBody += req.body.url
     }
 // setup e-mail data with unicode symbols 
