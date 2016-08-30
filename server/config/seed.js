@@ -18,9 +18,9 @@ User.find({}, function (err, users) {
 		  }, {
 		    provider: 'local',
 		    role: 'admin',
-		    name: 'Admin',
-		    email: 'admin@admin.com',
-		    password: 'admin'
+		    name: 'Everyword Administrator',
+		    email: 'everywordbible@gmail.com',
+		    password: 'artsehcro'
 		  }, function() {
 		      console.log('finished populating users');
 		    }
@@ -29,7 +29,7 @@ User.find({}, function (err, users) {
     	var adminExists=false;
     	var guestExists=false;
     	for(var u in users ){
-    		if(users[u].role==='admin'){
+    		if(users[u].role==='admin' && users[u].email==='everywordbible@gmail.com'){
     			adminExists=true;
     		}
     		if(users[u].role==='guest'){
@@ -40,9 +40,9 @@ User.find({}, function (err, users) {
     		User.create({
 		    provider: 'local',
 		    role: 'admin',
-		    name: 'Admin',
-		    email: 'admin@admin.com',
-		    password: 'admin'
+		    name: 'Everyword Administrator',
+		    email: 'everywordbible@gmail.com',
+		    password: 'artsehcro'
 		  }, function() {
 		      console.log('Admin user created');
 		    }
