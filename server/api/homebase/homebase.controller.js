@@ -30,7 +30,7 @@ exports.show = function(req, res) {
     if(!homebase) {
     	homebase = new Homebase({login: req.params.id});
     	homebase.save();
-    	return res.json(homebase);
+    	return res.json({'homebase': {'login':homebase.login}, 'userIds':[]});
     }
     var following = homebase.following;//.map(function(u){return u._id;});
 	var userIds = _.uniq(following.concat(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);})));
