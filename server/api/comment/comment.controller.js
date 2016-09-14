@@ -76,7 +76,7 @@ exports.like = function(req, res) {
     var likeEntry = new Like({user:req.body.user,comment: comment._id});
     likeEntry.save(function(err,like){
     	if(err) return handleError(res, err); 
-    	comment.likers.push(like._id)
+    	comment.likers.push(like.user)
     	comment.likes += 1;
         comment.save(function (err, comm) {
             if (err) { return handleError(res, err); }

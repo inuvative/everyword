@@ -36,7 +36,7 @@ exports.show = function(req, res) {
 	var userIds = _.uniq(following.concat(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);})));
 //	homebase.userIds=userIds;
 //	getFeed(res,homebase.login,userIds,function(feed){
-		userIds = userIds.filter(function(u) {return u._id !== homebase.login;});
+//		userIds = userIds.filter(function(u) {return u._id !== homebase.login;});
 	    return res.json({'homebase': {'login':homebase.login, 'tag':homebase.tags}, 'userIds':userIds});		
 //	});
   });
