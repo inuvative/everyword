@@ -32,8 +32,9 @@ exports.show = function(req, res) {
     	homebase.save();
     	return res.json({'homebase': {'login':homebase.login}, 'userIds':[]});
     }
-    var following = homebase.following;//.map(function(u){return u._id;});
-	var userIds = _.uniq(following.concat(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);})));
+    var following = homebase.following.map(function(f){ return f.toJSON(); });
+    var groupMembers = _.map(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);}),function(m){return m.toJSON();});
+    var userIds = _.uniq(following.concat(groupMembers));
 //	homebase.userIds=userIds;
 //	getFeed(res,homebase.login,userIds,function(feed){
 //		userIds = userIds.filter(function(u) {return u._id !== homebase.login;});
@@ -100,21 +101,25 @@ exports.getFeed = function(req, res){
 					  if(e.comment){
 						  Comment.populate(e.comment, [{path: 'user', model: 'User'},{path: 'group', model: 'Group'}, {path : 'remarks', model:'Remark'}], function(err, comment){
 							  Comment.populate(comment,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(comment){
-								  feed.push({'_id': comment._id, 'user': comment.user, 'date': comment.date, 'comment' : comment});
+								  feed.push({'_id': comment._id, 'user': comment.user, 'date': comment.date, 'comment' : comment, 'likes' : comment.likes});
 								  next();								  
 							  });
 						  });
 					  }
 					  else if(e.media) {
-						  Media.populate(e.media,[{path: 'user', model: 'User'},{path: 'image', model: 'Image'}], function(err,med){
-							  feed.push({'_id': med._id, 'user': med.user, 'date': med.date, 'media': med});
-							  next();
+						  Media.populate(e.media,[{path: 'user', model: 'User'},{path: 'image', model: 'Image'},{path : 'remarks', model:'Remark'}], function(err,media){
+							  Media.populate(media,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(med){
+								  feed.push({'_id': med._id, 'user': med.user, 'date': med.date, 'media': med, 'likes': med.likes});
+								  next();
+							  });
 						  });
 					  }
 					  else if(e.reference){
-						  Reference.populate(e.reference,{path: 'user', model: 'User'}, function(err,ref){
-							 feed.push({'_id': ref._id, 'user': ref.user, 'date': ref.date, 'reference': ref});
-							 next();
+						  Reference.populate(e.reference,[{path: 'user', model: 'User'},{path : 'remarks', model:'Remark'}], function(err,reference){
+							 Reference.populate(reference,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(ref){
+								 feed.push({'_id': ref._id, 'user': ref.user, 'date': ref.date, 'reference': ref, 'likes': ref.likes});
+								 next();
+							 });
 						  });
 					  } else {
 						  next();						  
@@ -152,9 +157,9 @@ exports.getFeed = function(req, res){
 }
 
 exports.getComments = function(req, res) {
-	  Homebase.findOne({ login: req.params.id}).populate('comments').exec(function (err, homebase) {
+	  FeedEntry.find({ user: req.params.id}, function (err, entries) {
 	    if(err) { return handleError(res, err); }    
-	    return res.json(homebase.comments);
+	    return res.json(entries);
 	  });
 };
 
@@ -177,7 +182,8 @@ exports.getFollowing = function(req, res) {
     var all=req.query.all=="true" ? true : false;
 
 	Homebase.findOne({ login: req.params.id}).populate('following').exec(function (err, homebase) {
-	    if(err) { return handleError(res, err); }  
+	    if(err) { return handleError(res, err); }
+	    if(!homebase) return res.send(null);
 	    User.findById(req.params.id, function(err,user){
 	    	if(user.role==='guest' && homebase.following.length===0){
 	    		User.find({role:'user'}).limit(20).exec(function(err,users){
@@ -193,6 +199,16 @@ exports.getFollowing = function(req, res) {
 	    	}
 	    })
 	  });
+};
+
+exports.getFollowers = function(req, res) {
+    var all=req.query.all=="true" ? true : false;
+
+	Homebase.find({ following: req.params.id}).populate('login').exec(function (err, homebases) {
+	    if(err) { return handleError(res, err); }  
+	    	return res.json(homebases);	    		
+	    });
+//	  });
 };
 
 exports.getMessages = function(req, res) {
@@ -221,11 +237,11 @@ exports.getLikes = function(req, res) {
 	  Like.find({ user: req.params.id},function (err, likes) {
 	    if(err) { return handleError(res, err); }    
 	    if(likes){
-	    	var comments=[];
+	    	var entries=[];
 	    	for(var l in likes) {
-	    		comments.push(likes[l].comment);
+	    		entries.push(likes[l].comment || likes[l].media || likes[l].reference);
 	    	}
-	    	return res.json(comments);
+	    	return res.json(entries);
 	    }
 	  });
 };
