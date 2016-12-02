@@ -53,7 +53,7 @@ exports.update = function(req, res) {
     	annotation.comments = updateAnnotation(annotation.comments,_.map(req.body.comments,objectIds),req.body.remove);
     }
     if(req.body.references){
-    	annotation.references = updateAnnotaion(annotation.references, _.map(req.body.references,objectIds), req.body.remove);
+    	annotation.references = updateAnnotation(annotation.references, _.map(req.body.references,objectIds), req.body.remove);
     }
     if(req.body.media) {
     	annotation.media = updateAnnotation(annotation.media,_.map(req.body.media,objectIds),req.body.remove);
