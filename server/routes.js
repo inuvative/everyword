@@ -21,6 +21,7 @@ module.exports = function(app) {
   app.use('/api/annotations', require('./api/annotation'));
   app.use('/api/comments', require('./api/comment'));
   app.use('/api/homebases', require('./api/homebase'));
+  app.use('/api/devotionals', require('./api/devotional'));
   app.use('/api/things', require('./api/thing'));
   app.use('/api/users', require('./api/user'));
 
