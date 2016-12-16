@@ -1,11 +1,14 @@
 'use strict';
 
 var _ = require('lodash');
+var each = require('async-each-series');
+
 var User = require('../user/user.model');
 var Comment = require('../comment/comment.model');
 var Annotation = require('../annotation/annotation.model');
 var Devotional = require('./devotional.model');
 var Homebase = require('../homebase/homebase.model');
+var FeedEntry = require('../homebase/feed.entry');
 
 // Get list of devotionals
 exports.index = function(req, res) {
@@ -37,23 +40,23 @@ exports.create = function(req, res) {
   Devotional.findOne({day: parseInt(req.body.day)}).populate('user comment').exec(function(err , devotional) {
 	    if(err) { return handleError(res, err); }
 	    if(!devotional) { 
-	    	createDevotional(req.body,function(err, devotional){
-			    if(err) { return handleError(res, err); }
-			    var opts = [{path: 'user', model: 'User'},{path: 'comment', model: 'Comment'}]
-			    Devotional.populate(devotional,opts, function(err, devotional){
-			    	Comment.populate(devotional.comment, {path: 'user', model: 'User'}, function(err, comm){
-					    devotional.comment = comm;
-			    		return res.status(201).json(devotional);			    				    		
-			    	})
-			    });
+	    	createDevotional(req.body,function(errors, devotionals){
+			    if(devotionals.length>0){
+				    var opts = [{path: 'user', model: 'User'},{path: 'comment', model: 'Comment'}];
+				    Devotional.populate(devotionals[0],opts, function(err, devotional){
+				    	Comment.populate(devotional.comment, {path: 'user', model: 'User'}, function(err, comm){
+						    devotional.comment = comm;
+				    		return res.status(201).json(devotional);			    				    		
+				    	})
+				    });			    	
+			    } else {
+				    if(errors && errors.length>0) {
+				    	return handleError(res, JSON.stringify(errors)); 
+				    }			    	
+			    }
 	    	});
-//	  	  Devotional.create(req.body, function(err, devotional) {
-//			    if(err) { return handleError(res, err); }
-//			    return res.status(201).json(devotional);
-//			  });
 	    } else {
 		    Comment.populate(devotional.comment, {path:'user', model:'User'},function(err,comm){
-			    
 		    	return res.json(devotional);	    	
 		    });	    	
 	    }
@@ -87,96 +90,91 @@ exports.destroy = function(req, res) {
 };
 
 function createDevotional(devotional,callback){
-	var day = parseInt(devotional.day);
-	var d = devotional;
-	User.findOne({email: d.email}, function(err,user){
+	User.findOne({email: devotional.email}, function(err,user){
 		if(!user){
 			user = new User({
 			    provider: 'local',
 			    role: 'user',
-			    name: d.Commenter,
-			    email: d.email,
+			    name: devotional.Commenter,
+			    email: devotional.email,
 			    password: 'guest'
 			});
 		  user.save(function(err, user) {
 				if(err){
 					callback(err);
 				} else {
-					Homebase.findOne({ login: user._id},function (err, homebase) {
-					    if(err) { return handleError(res, err); }    
-					    if(!homebase) {
-					    	homebase = new Homebase({login: user._id});
-					    	homebase.save();
-					    }
-							var comment = new Comment({ user: user._id, text:d.comments, date: new Date(), isPrivate: false });
-							comment.save(function(err,comment){
-								for(var s=0; s<d.scriptures.length;s++){
-					        		 var reference = d.scriptures[s];
-					        		 var start = 1;
-					        		 if(reference.verses){
-					        			 var vs = reference.verses.split("-");
-					        			 start = parseInt(vs[0])||1;
-					        		 }
-						             var anno= new Annotation({ book: reference.book, chapter: reference.chapter, verse: start, comments: [comment._id] });
-						             anno.save(function(err,anno)
-						            		 {
-								            	 if(err){
-								            		 callback(err);
-								            		 console.log("error on devotion save"+ err);
-								            	 }
-						            		 }
-						             );
-						             var devotion = new Devotional({day: day, book: reference.book, chapter: reference.chapter, verses: reference.verses, 
-						            	 							user: user._id,
-						            	 							comment: comment._id});
-						             devotion.save(function(err,dev){
-						            	 if(err){
-						            		 callback(err);
-						            		 console.log("error on devotion save"+ err);
-						            	 } else {
-						            		 callback(null,dev);
-						            		 console.log("devation saved");
-						            	 }
-						             });
-					        	}
-							});					
-					});
+					insertUserRecords(user,devotional,callback);
 				}
 			  });
 		} else {
-			Homebase.findOne({ login: user._id},function (err, homebase) {
-			    if(err) { return handleError(res, err); }    
-			    if(!homebase) {
-			    	homebase = new Homebase({login: user._id});
-			    	homebase.save();
-			    }
-				var comment = new Comment({ user: user._id, text:d.comments, date: new Date(), isPrivate: false });
-				comment.save(function(err,comment){
-					for(var s=0; s<d.scriptures.length;s++){
-		        		 var reference = d.scriptures[s];
-		        		 var vs = reference.verses.split("-");
-		     		  	 var start = parseInt(vs[0])||1;
-			             var anno= new Annotation({ book: reference.book, chapter: reference.chapter, verse: start, comments: [comment._id] });
-			             anno.save();
-			             var devotion = new Devotional({day: day, book: reference.book, chapter: reference.chapter, verses: reference.verses, 
-			            	 							user: user._id,
-			            	 							comment: comment._id});
-			             devotion.save(function(err,dev){
-			            	 if(err){
-			            		 callback(err);
-			            		 console.log("error on devotion save"+ err);
-			            	 } else {
-			            		 callback(null,dev);
-			            		 console.log("devation saved");
-			            	 }
-			             });
-		        	}
-				});					
-			});
+			insertUserRecords(user,devotional,callback);
 		}
 	})	
 }
 
+function insertUserRecords(user,devotional,callback){
+	var day = parseInt(devotional.day);
+	var d = devotional;	
+	Homebase.findOne({ login: user._id},function (err, homebase) {
+	    if(err) { return handleError(res, err); }    
+	    if(!homebase) {
+	    	homebase = new Homebase({login: user._id});
+	    	homebase.save();
+	    }
+		var comment = new Comment({ user: user._id, text:d.comments, date: new Date(), isPrivate: false });
+		comment.save(function(err,comment){
+			if(err){
+				callback(err);
+			}
+			var entry = new FeedEntry({comment: comment._id, date: comment.date, user: comment.user});
+			entry.save();									
+			var devotionals=[];
+			var errors=[];
+			each(d.scriptures, function(s, next){
+        		 var reference = s;
+        		 var start = 1;
+        		 if(reference.verses){
+        			 var vs = reference.verses.split("-");
+        			 start = parseInt(vs[0])||1;
+        		 }
+	             var devotion = new Devotional({day: day, book: reference.book, chapter: reference.chapter, verses: reference.verses, 
+						user: user._id,
+						comment: comment._id
+						});
+				devotion.save(function(err,dev){
+					if(err){
+						errors.push(err);
+						console.log("error on devotional save"+ err);								       
+					} else {
+						devotionals.push(dev);
+						console.log("devotional saved");
+			    		 
+		        		 Annotation.findOne({ book: reference.book, chapter: reference.chapter, verse: start}, function(err, anno) {
+		        			 if(err){
+		        				 console.log(err);
+		        			 }
+		        			 if(!anno){
+		        				 anno= new Annotation({ book: reference.book, chapter: reference.chapter, verse: start, comments: [comment._id] });
+		        			 } else {
+		        				 anno.comments.push(comment._id);
+		        			 }
+				             anno.save(function(err,a) {
+						            	 if(err){
+						            		 console.log("error on annotation save"+ err);
+						            	 }
+										next();
+				            		  });
+		        		 });
+					}
+					
+				});
+        	}, function(err) {
+        		callback(errors.length!==0? errors : null,devotionals);
+        		console.log("devotionals created");        		
+        	});
+		});					
+	});	
+}
 function handleError(res, err) {
   return res.status(500).send(err);
 }
