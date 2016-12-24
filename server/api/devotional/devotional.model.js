@@ -10,6 +10,7 @@ var DevotionalSchema = new Schema({
   verses: String,
   user: {type: Schema.ObjectId, ref: 'User'},
   comment: {type: Schema.ObjectId, ref: 'Comment'},
+  media: {type: Schema.ObjectId, ref: 'Media'}
 });
 
 module.exports = mongoose.model('Devotional', DevotionalSchema);

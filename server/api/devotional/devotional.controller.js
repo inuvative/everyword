@@ -5,6 +5,8 @@ var each = require('async-each-series');
 
 var User = require('../user/user.model');
 var Comment = require('../comment/comment.model');
+var Media = require('../media/media.model');
+var Image = require('../media/media.image');
 var Annotation = require('../annotation/annotation.model');
 var Devotional = require('./devotional.model');
 var Homebase = require('../homebase/homebase.model');
@@ -37,17 +39,24 @@ exports.findByDay = function(req, res) {
 
 // Creates a new devotional in the DB.
 exports.create = function(req, res) {
-  Devotional.findOne({day: parseInt(req.body.day)}).populate('user comment').exec(function(err , devotional) {
+  Devotional.findOne({day: parseInt(req.body.day)}).populate('user comment media').exec(function(err , devotional) {
 	    if(err) { return handleError(res, err); }
 	    if(!devotional) { 
 	    	createDevotional(req.body,function(errors, devotionals){
 			    if(devotionals.length>0){
-				    var opts = [{path: 'user', model: 'User'},{path: 'comment', model: 'Comment'}];
+				    var opts = [{path: 'user', model: 'User'},{path: 'comment', model: 'Comment'}, {path: 'media', model: 'Media'}];
 				    Devotional.populate(devotionals[0],opts, function(err, devotional){
-				    	Comment.populate(devotional.comment, {path: 'user', model: 'User'}, function(err, comm){
-						    devotional.comment = comm;
-				    		return res.status(201).json(devotional);			    				    		
-				    	})
+				    	if(devotional.comment){
+					    	Comment.populate(devotional.comment, {path: 'user', model: 'User'}, function(err, comm){
+							    devotional.comment = comm;
+					    		return res.status(201).json(devotional);			    				    		
+					    	})				    		
+				    	} else if(devotional.media){
+				    		Media.populate(devotional.media, [{path: 'user', model: 'User'},{path: 'image', model: 'Image'}], function(err, media){
+				    			devotional.media = media;
+				    			return res.status(201).json(devotional);
+				    		})
+				    	}
 				    });			    	
 			    } else {
 				    if(errors && errors.length>0) {
@@ -56,9 +65,16 @@ exports.create = function(req, res) {
 			    }
 	    	});
 	    } else {
-		    Comment.populate(devotional.comment, {path:'user', model:'User'},function(err,comm){
-		    	return res.json(devotional);	    	
-		    });	    	
+	    	if(devotional.comment){
+			    Comment.populate(devotional.comment, {path:'user', model:'User'},function(err,comm){
+			    	return res.json(devotional);	    	
+			    });	    		    		
+	    	} else if(devotional.media){
+	    		Media.populate(devotional.media, [{path: 'user', model: 'User'},{path: 'image', model: 'Image'}], function(err, media){
+	    			return res.json(devotional);
+	    		})
+	    		
+	    	}
 	    }
   })
 };
@@ -121,12 +137,24 @@ function insertUserRecords(user,devotional,callback){
 	    	homebase = new Homebase({login: user._id});
 	    	homebase.save();
 	    }
-		var comment = new Comment({ user: user._id, text:d.comments, date: new Date(), isPrivate: false });
-		comment.save(function(err,comment){
+	    var comment = (d.comments && d.comments.length>0) ? new Comment({ user: user._id, text:d.comments, date: new Date(), isPrivate: false }) : null;
+	    var media = null;
+	    if(d.media){
+	    	var image = new Image({url: d.media.url, type: d.media.type});
+			image.save();
+			media = new Media({user: user._id, url:'', type: d.media.type, image: image._id, date: new Date()})
+	    }	    
+	    var rec = comment || media;	    
+		rec.save(function(err,rec){
 			if(err){
 				callback(err);
 			}
-			var entry = new FeedEntry({comment: comment._id, date: comment.date, user: comment.user});
+			var entry = new FeedEntry({date: rec.date, user: rec.user});
+			if(rec.text){
+				entry.comment = rec._id;
+			} else {
+				entry.media = rec._id;
+			}
 			entry.save();									
 			var devotionals=[];
 			var errors=[];
@@ -137,10 +165,12 @@ function insertUserRecords(user,devotional,callback){
         			 var vs = reference.verses.split("-");
         			 start = parseInt(vs[0])||1;
         		 }
-	             var devotion = new Devotional({day: day, book: reference.book, chapter: reference.chapter, verses: reference.verses, 
-						user: user._id,
-						comment: comment._id
-						});
+	             var devotion = new Devotional({day: day, book: reference.book, chapter: reference.chapter, verses: reference.verses,user: user._id});
+	             if(rec.text){
+	            	 devotion.comment = rec._id;
+	             } else {
+	            	 devotion.media = rec._id
+	             }
 				devotion.save(function(err,dev){
 					if(err){
 						errors.push(err);
@@ -154,9 +184,18 @@ function insertUserRecords(user,devotional,callback){
 		        				 console.log(err);
 		        			 }
 		        			 if(!anno){
-		        				 anno= new Annotation({ book: reference.book, chapter: reference.chapter, verse: start, comments: [comment._id] });
+		        				 anno= new Annotation({ book: reference.book, chapter: reference.chapter, verse: start});
+		        				 if(rec.text){
+		        					 anno.comments= [rec._id]; 
+		        				 } else {
+		        					 anno.media=[rec._id];
+		        				 }
 		        			 } else {
-		        				 anno.comments.push(comment._id);
+		        				 if(rec.text){
+		        					 anno.comments.push(rec._id); 
+		        				 } else {
+		        					 anno.media.push(rec._id);
+		        				 }
 		        			 }
 				             anno.save(function(err,a) {
 						            	 if(err){
