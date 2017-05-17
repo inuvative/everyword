@@ -240,6 +240,52 @@ exports.findMedia = function(req, res) {
 		    });	    
 };
 
+exports.getNewestAnnotation = function(req,res) {
+	FeedEntry.aggregate([
+	      {
+	    	  $group : { _id : "$user", count : {$sum:1}}},{ $sort:{count:1} 
+	      }
+	], function(err,result){
+		  if(err){ return handleError(res,err);}
+		  var minCount = result && result[0] ? result[0].count : 0;
+		  var least=[];
+		  var i=0;
+		  while(i<10){//result.length && result[i].count <= minCount){
+			  least.push(mongooseTypes.ObjectId(result[i]._id));		
+			  i++;
+		  }
+		  var earliest = new Date();
+		  earliest.setDate(earliest.getDate()-7);
+		  
+		  FeedEntry.find({user : {$in: least},date:{$gte:earliest}})
+		  		   .populate('comment media reference user')
+		  		   .sort({"date":-1})
+		  		   .limit(1).exec(function(err,fe){
+		  			   if(err){
+		  				   return handleError(res,err);
+		  			   }
+		  			   if(!fe || fe.length===0) {
+		  				   return res.send(null);
+		  			   }
+		  			   var newest=fe[0];
+		  			   if(newest.comment){
+		  				   Comment.populate(newest.comment, [{path: 'user', model: 'User'}],function(err,comment){
+		  					  return res.status(200).json(newest); 
+		  				   });
+		  			   }else if(newest.media){
+		  				   Media.populate(newest.media,[{path: 'user', model: 'User'},{path: 'image', model: 'Image'}],function(err,media){
+		  					   return res.status(200).json(newest);
+		  				   });
+		  			   } else if(newest.reference){
+		  				   Reference.populate(newest.reference,[{path: 'user', model: 'User'}],function(err,reference){
+		  					   return res.status(200).json(newest);
+		  				   });
+		  			   } else {
+		  				   return res.send(null);
+		  			   }
+		  		   });
+	});
+}
 
 function getFootnotes(req){
 	  var reference = {};
