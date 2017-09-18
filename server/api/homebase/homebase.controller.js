@@ -220,8 +220,11 @@ exports.getFollowing = function(req, res) {
 	    			    		   });
 		    			       User.find({$or: [{_id:{ $in : following }},{email:'everywordbible@gmail.com'}]}, function(err,users){
 		    		    			homebase.following = users;
-		    		    			homebase.save();
-		    		    			return res.json(homebase.following);
+		    		    			homebase.save(function(err,hb){
+		    		    				Homebase.populate(hb, 'following', function(err,hb) {
+				    		    			return res.json(hb.following);		    		    					
+		    		    				});
+		    		    			});
 		    		    		})
 		    			       // Result is an array of documents	    			    	   
 	    			       }
