@@ -15,6 +15,7 @@ var Image = require('../media/media.image');
 var Reference = require('../reference/reference.model');
 var User = require('../user/user.model');
 var Feed = require('../homebase/feed.model');
+var NewFeed = require('../homebase/newfeed.model');
 var FeedEntry = require('../homebase/feed.entry');
 var Like = require('../comment/like.model');
 var Remark = require('../remark/remark.model');
@@ -240,51 +241,51 @@ exports.getFeed = function(req, res){
 	  var dateQuery = req.query.after === undefined ? {"$lte":dt} : {"$lt" : dt};
 	  var populate_fields = [{ path: 'user'}, {path: 'comment'}, {path: 'media'}, {path: 'reference'}];
 	  
-	  Homebase.findOne({ login: owner}).populate('groups').exec(function (err, homebase) {
-		  var feed = [];
-		  if(err||!homebase){
-			  return sendJSON(res,feed);
+	  NewFeed.findOne({ owner: owner},function (err, feed) {
+		  if(err||!feed){
+			  return sendResponse(res,null);
 		  }
-  	      followEverywordUser(homebase, function(following) {
-  			  var users = _.uniq(following.concat(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);})));
-  			  users = _.union([owner],users);
-  			  FeedEntry.find({user : {$in : users}, date: dateQuery}).sort('-date').limit(20)
-  			  	.populate('user comment media reference').exec(
-  			  		function(err,entries){
-  					  each(entries, function(e ,next) {
+//  	      followEverywordUser(homebase, function(following) {
+//  			  var users = _.uniq(following.concat(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);})));
+//  			  users = _.union([owner],users);		 
+  			var entries = _.map(feed.entries, function(e){return e.id;}); 
+  			 var feedEntries=[];
+		  	 FeedEntry.find({_id : {$in : entries}, date: dateQuery}).lean().sort('-date').limit(20)
+  			  	.populate('user comment media reference')
+  			  	.stream()
+  			  	.on('data',	function(e){
+  		   		  Follow.findOne({user:e.user._id}).select('followers').lean().exec(function(err,e2){
+  		   			  e.followers=e2 && e2.followers ? e2.followers: [];
+  		   			  var anno = e.comment||e.media||e.reference;
+  		   			  Remark.find({_id:{$in : anno.remarks}}).populate('user').exec(function(err,remarks){
   						  if(e.comment){
-  							  Comment.populate(e.comment, [{path: 'user', model: 'User'},{path: 'group', model: 'Group'}, {path : 'remarks', model:'Remark'}], function(err, comment){
-  								  Comment.populate(comment,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(comment){
-  									  feed.push({'_id': comment._id, 'user': comment.user, 'date': comment.date, 'comment' : comment, 'likes' : comment.likes});
-  									  next();								  
-  								  });
+  							  e.comment.user=e.user;
+  							  e.comment.remarks = remarks||[];
+  							  Group.findOne({_id: e.comment.group}, function(err, group){
+  								  e.comment.group=group;
+  								  feedEntries.push(e);
   							  });
   						  }
   						  else if(e.media) {
-  							  Media.populate(e.media,[{path: 'user', model: 'User'},{path: 'image', model: 'Image'},{path : 'remarks', model:'Remark'}], function(err,media){
-  								  Media.populate(media,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(med){
-  									  feed.push({'_id': med._id, 'user': med.user, 'date': med.date, 'media': med, 'likes': med.likes});
-  									  next();
-  								  });
+  							  e.media.user=e.user;
+  							  Image.findOne({_id: e.media.image}, function(err,image){
+  								  e.media.image=image;
+  								  e.media.remarks = remarks||[];
+  								  feedEntries.push(e);
   							  });
-  						  }
-  						  else if(e.reference){
-  							  Reference.populate(e.reference,[{path: 'user', model: 'User'},{path : 'remarks', model:'Remark'}], function(err,reference){
-  								 Reference.populate(reference,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(ref){
-  									 feed.push({'_id': ref._id, 'user': ref.user, 'date': ref.date, 'reference': ref, 'likes': ref.likes});
-  									 next();
-  								 });
-  							  });
-  						  } else {
-  							  next();						  
-  						  }
-  					  },function(err){
-  						  console.log("Sending feed to client")
-  						  return sendJSON(res,feed);
-  					  });
-  			  			
-  			  });  	    	  
-  	      });
+  						  } else if(e.reference){
+  							  e.reference.user = e.user;
+  							  e.reference.remarks = remarks||[];
+  							  feedEntries.push(e);
+  						  }	   				  
+  		   			  });
+  		   		  });
+  			  	})
+  			  	.on('end',function(){
+  			  		var result = _.orderBy(feedEntries,['date'],['desc']);
+  			  		return sendJSON(res,result);
+  			  	});  	    	  
+//  	      });
 	  });
 }
 
@@ -334,7 +335,7 @@ exports.getFollowing = function(req, res) {
     var name=req.query.name;
     var avail=(req.query.available=="true");
     var userId=req.params.id;
-	Follow.find({ user:userId }).lean().exec(function (err, follow) {
+	Follow.find({ user:userId }).exec(function (err, follow) {
 	    if(err) { return handleError(res, err); }
 	    if(!follow||follow.length===0) return res.send(null);
 	    follow=follow[0];
@@ -409,15 +410,17 @@ exports.getFollowing = function(req, res) {
 		    			following = _.filter(following,function(f){return new RegExp(name, 'i').test(f.name)});
 		    		}
 	    			following = _.sortBy(_.slice(following,0,limit),'_id'); 
-	    			each(following, function(u ,next) {
-    		    		getCounts(u,function(counts){
-    		    			_.assign(u,counts);
-    		    			feedSocket.sendFollowing(user._id,u)
-    		    		    next();	    	
-    		    		});
-    				  },function(err){
-    					  return res.status(200).send({done:following.length===0});//following);
-    				  });
+	    			User.find({_id : {$in: following}}, '-salt -hashedPassword').sort({_id: 1}).limit(limit).lean().exec(function (err, users) {
+		    			each(users, function(u ,next) {
+	    		    		getCounts(u,function(counts){
+	    		    			_.assign(u,counts);
+	    		    			feedSocket.sendFollowing(user._id,u)
+	    		    		    next();	    	
+	    		    		});
+	    				  },function(err){
+	    					  return res.status(200).send({done:following.length===0});//following);
+	    				  });	    				
+	    			});
 	    		}
 	    	}
 	    })

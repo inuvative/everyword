@@ -47,6 +47,10 @@ exports.sendToFeed = function(userId,fe) {
 	io.emit('feed'+userId+':new', fe);
 }
 
+exports.sendFeedDone = function(userId){
+	io.emit('feed'+userId+':done');
+}
+
 exports.sendFollowing = function(userId, ff){
 	io.emit('feed'+userId+':following',ff);
 }

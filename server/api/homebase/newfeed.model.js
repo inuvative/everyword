@@ -17,4 +17,4 @@ var FeedSchema = new Schema({
 
 FeedSchema.index({owner:1});
 
-module.exports = mongoose.model('Feed', FeedSchema);
+module.exports = mongoose.model('NewFeed', FeedSchema);
