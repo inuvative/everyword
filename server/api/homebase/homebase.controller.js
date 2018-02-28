@@ -96,15 +96,23 @@ exports.update = function(req, res) {
 };
 
 exports.follow = function(req,res){
-	Follow.findOneAndUpdate({user: req.params.id},{$push: {'following' : req.body.follow}},{upsert:true},function(err,follows){
-		if(err){return handleError(res,err);}
+	Follow.findOneAndUpdate({user: req.params.id},{$push: {'following' : req.body}},{upsert:true},function(err,follows){
+		if(err){return handleError(res,err);}		
+		User.findById(req.params.id, function(err,user){
+			var follower = {id: user._id, name: user.name};
+			Follow.findOneAndUpdate({user:req.body.id},{$push:{'followers': follower}},{upsert:true})
+		})
 		return res.status(200).json(follows);
 	})
 }
 
 exports.unfollow = function(req,res){
-	Follow.findOneAndUpdate({user: req.params.id},{$pull: {'following' : req.body.unfollow}},{upsert:true},function(err,follows){
+	Follow.findOneAndUpdate({user: req.params.id},{$pull: {'following' : req.body}},{upsert:true},function(err,follows){
 		if(err){return handleError(res,err);}
+		User.findById(req.params.id, function(err,user){
+			var follower = {id: user._id, name: user.name};
+			Follow.findOneAndUpdate({user:req.body.id},{$pull:{'followers': follower}},{upsert:true})
+		})
 		return res.status(200).json(follows);
 	})
 }
@@ -355,52 +363,54 @@ exports.getFollowing = function(req, res) {
 	    			        { "$limit": 20 }
 	    			    ],
 	    			    function(err,result) {
+	    			       var following=[]
 	    			       if(result){
 	    			    	   var following = _.filter(result,function(u){
 	    			    		   return u && u._id && !u._id.equals(user.id)
 	    			    		   });
-		    			       User.find({$or: [{_id:{ $in : following }},{email:'everywordbible@gmail.com'}]},function(err,users){
-		    		    			follow.following = _.sortBy(_.map(users, function(u){return {_id:u._id, name: u.name};}),'_id');
-		    		    			follow.save(function(err,f){
-		    		    				Follow.populate(f, 'following', function(err,f) {
-//				    		    			return f.following ? sendJSON(res,f.following): [];
-		    		    					if(f.following){
-		    		    						each(f.following, function(u ,next) {
-		    		    							feedSocket.sendFollowing(user._id,u);
-		    		    							next();
-		    		    						},function(err){
-		    				    					return res.status(200).send('DONE');//json(users);
-		    				    				});
-		    		    					}
-		    		    				});
-		    		    			});
+		    			       User.find({$or: [{_id:{ $in : following }},{email:'everywordbible@gmail.com'}]})
+		    			       .stream()
+		    			       .on('data',function(user) {
+		    			    	   following.push(user);
+//		    		    			follow.following = _.sortBy(_.map(users, function(u){return {id:u._id, name: u.name};}),'id');
 		    		    		})
+		    	  			  	.on('end',function(){
+		    	  			  		following = _.sortBy(following,'_id');
+		    	  			  		follow.following=_.map(following, function(f){return {"id":u._id,"name":u.name}});
+		    	  			  		follow.save();
+		    	  			  		return sendJSON(res,following);
+		    	  			  	});  	    	  
 		    			       // Result is an array of documents	    			    	   
 	    			       }
 	    			    }
 	    			);
 	    	} else {
-	    		var following = follow.following;
+	    		var following = follow.following;	 
+	    		var results=[]
 	    		if(avail){
-		    		var query = lastId ? {_id:{ $nin: following, $gt: mongooseTypes.ObjectId(lastId)}} : {_id: {$nin: following}};
+	    			var ids = _.map(following,'id');
+		    		var query = lastId ? {_id:{ $nin: ids, $gt: mongooseTypes.ObjectId(lastId)}} : {_id: {$nin: ids}};
 	    			limit=20;
-		    		User.find(query, '-salt -hashedPassword').sort({_id: 1}).limit(limit).lean().exec(function (err, users) {
-		    		    if(err) return res.status(500).send(err);
-		    		    if(!users){
-		    		    	return res.status(200).send({done:true});
-		    		    } else {
-		    		    	each(users, function(u ,next) {
-		    		    		getCounts(u,function(counts){
-		    		    			_.assign(u,counts);
-		    		    			feedSocket.sendAvailable(user._id,u)
-		    		    		    next();	    	
-		    		    		});
-		    				  },function(err){
-		    					  return res.status(200).send({done:users.length===0});//json(users);
-		    				  });
+		    		User.find(query, '-salt -hashedPassword').sort({_id: 1}).limit(limit).lean()
+		    		.stream()
+		    		.on('data',function (user) {
+		    		    if(user){
+    		    			results.push(user)
 		    		    }	    			
+		    		})
+		    		.on('end', function(){
+	  			  		results = _.sortBy(results,'_id');
+	    		    	each(results, function(u ,next) {
+	    		    		getCounts(u,function(counts){
+	    		    			_.assign(u,counts);
+	    		    		    next();	    	
+	    		    		});
+    				  },function(err){
+    					  return sendJSON(res,results);		    			
+    				  });
 		    		});
 	    		} else {
+	    			var results=[]
 		    		var limit = !all && following.length>20 ? 20 : 0;
 		    		if(lastId){
 		    			following = _.filter(following,function(f){return _.gt(f._id,mongooseTypes.ObjectId(lastId))});
@@ -409,17 +419,25 @@ exports.getFollowing = function(req, res) {
 //		    			query.name = {$regex: name, $options: 'i' };
 		    			following = _.filter(following,function(f){return new RegExp(name, 'i').test(f.name)});
 		    		}
-	    			following = _.sortBy(_.slice(following,0,limit),'_id'); 
-	    			User.find({_id : {$in: following}}, '-salt -hashedPassword').sort({_id: 1}).limit(limit).lean().exec(function (err, users) {
-		    			each(users, function(u ,next) {
+	    			following = _.sortBy(_.slice(following,0,limit),'id'); 
+	    			ids = _.map(following,'id');
+	    			User.find({_id : {$in: ids}}, '-salt -hashedPassword').sort({_id: 1}).limit(limit).lean()
+	    			.stream()
+	    			.on('data',function (user) {
+	    				if(user){
+    		    			results.push(user);	    					
+	    				}
+	    			})
+	    			.on('end',function(){
+	  			  		results = _.sortBy(results,'_id');
+		    			each(results, function(u ,next) {
 	    		    		getCounts(u,function(counts){
 	    		    			_.assign(u,counts);
-	    		    			feedSocket.sendFollowing(user._id,u)
 	    		    		    next();	    	
 	    		    		});
-	    				  },function(err){
-	    					  return res.status(200).send({done:following.length===0});//following);
-	    				  });	    				
+    				  },function(err){
+	  			  			return sendJSON(res,results);	    				
+    				  });	    				
 	    			});
 	    		}
 	    	}

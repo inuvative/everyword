@@ -5,8 +5,8 @@ var mongoose = require('mongoose'),
 
 var FollowSchema = new Schema({
   user : {type: Schema.ObjectId, ref: 'User'},
-  followers: [{ user: {_id: Schema.ObjectId, name: String}}],
-  following: [{ user: {_id: Schema.ObjectId, name: String}}]
+  followers: [{_id: false, id: {type: Schema.ObjectId, ref: 'User'}, name: String}],
+  following: [{_id: false, id: {type: Schema.ObjectId, ref: 'User'}, name: String}]
 });
 
 module.exports = mongoose.model('Follow', FollowSchema);
