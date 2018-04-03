@@ -31,6 +31,7 @@ FeedEntrySchema.post('remove', function(feedentry){
 });
 
 function updateFeeds(entry, user, action){
+	var user = user.toObject()
 	Group.find({creator:user._id},'members').lean().exec(function(err,groups) {
 		function getMembers(acc,curr) {
 			var members = acc.members||[];
@@ -39,7 +40,7 @@ function updateFeeds(entry, user, action){
 		var allMembers = groups.reduce(getMembers,{});
 		Follow.findOne({user:user._id},'followers').lean().exec(function(err,res){
 			 if(!res)return;
-			 var followers = res.followers||[];
+			 var followers = res.followers.map(function(f){return f.id})||[];
 			 var users = util.removeDupes([user._id].concat(allMembers).concat(followers));
 			 if(action==='remove'){
 				 Feed.update({owner:{ $in: users}}, {$pull: {entries: {id: entry._id}}}, {multi: true}, function(err,feeds){

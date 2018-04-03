@@ -95,9 +95,25 @@ exports.update = function(req, res) {
   });
 };
 
+function updateFeed(owner,user,follow) {
+	if(follow){
+		FeedEntry.find({user:user},function(err,entries){
+			var userEntries = entries.map(function(e) { return { id: e._id, user: e.user, date: e.date}});
+			Feed.update({owner:owner},{$push: {entries: { $each: userEntries}}}, function(err,feeds){
+				
+			});			
+		});
+	} else {
+		Feed.update({owner:owner}, {$pull: {entries: {user: user}}}, function(err,feeds){
+			
+		});
+	}
+}
+
 exports.follow = function(req,res){
 	Follow.findOneAndUpdate({user: req.params.id},{$push: {'following' : req.body}},{upsert:true},function(err,follows){
 		if(err){return handleError(res,err);}		
+		updateFeed(req.params.id,req.body.id,true)
 		User.findById(req.params.id, function(err,user){
 			var follower = {id: user._id, name: user.name};
 			Follow.findOneAndUpdate({user:req.body.id},{$push:{'followers': follower}},{upsert:true})
@@ -107,11 +123,12 @@ exports.follow = function(req,res){
 }
 
 exports.unfollow = function(req,res){
-	Follow.findOneAndUpdate({user: req.params.id},{$pull: {'following' : req.body}},{upsert:true},function(err,follows){
+	Follow.findOneAndUpdate({user: req.params.id},{$pull: {'following' : {user: req.body.id}}},{upsert:true},function(err,follows){
 		if(err){return handleError(res,err);}
+		updateFeed(req.params.id,req.body.id,false)
 		User.findById(req.params.id, function(err,user){
 			var follower = {id: user._id, name: user.name};
-			Follow.findOneAndUpdate({user:req.body.id},{$pull:{'followers': follower}},{upsert:true})
+			Follow.findOneAndUpdate({user:req.body.id},{$pull:{'followers': {user: follower.id}}},{upsert:true})
 		})
 		return res.status(200).json(follows);
 	})
@@ -390,6 +407,9 @@ exports.getFollowing = function(req, res) {
 	    		if(avail){
 	    			var ids = _.map(following,'id');
 		    		var query = lastId ? {_id:{ $nin: ids, $gt: mongooseTypes.ObjectId(lastId)}} : {_id: {$nin: ids}};
+		    		if(name){
+		    			query.name = {$regex: name, $options: 'i' };
+		    		}
 	    			limit=20;
 		    		User.find(query, '-salt -hashedPassword').sort({_id: 1}).limit(limit).lean()
 		    		.stream()
@@ -411,9 +431,9 @@ exports.getFollowing = function(req, res) {
 		    		});
 	    		} else {
 	    			var results=[]
-		    		var limit = !all && following.length>20 ? 20 : 0;
+		    		var limit = !all && following.length>20 ? 20 : following.length;
 		    		if(lastId){
-		    			following = _.filter(following,function(f){return _.gt(f._id,mongooseTypes.ObjectId(lastId))});
+		    			following = _.filter(following,function(f){return _.gt(f.id,mongooseTypes.ObjectId(lastId))});
 		    		}
 		    		if(name){
 //		    			query.name = {$regex: name, $options: 'i' };
@@ -503,6 +523,7 @@ function followEverywordUser(homebase, cb){
 		}
 	});
 }
+
 function sendResponse(res,data){
 	return res.status(200).send(data);
 }
