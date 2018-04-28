@@ -382,10 +382,10 @@ exports.getFollowing = function(req, res) {
 	    			    function(err,result) {
 	    			       var following=[]
 	    			       if(result){
-	    			    	   var following = _.filter(result,function(u){
+	    			    	   var users = _.filter(result,function(u){
 	    			    		   return u && u._id && !u._id.equals(user.id)
 	    			    		   });
-		    			       User.find({$or: [{_id:{ $in : following }},{email:'everywordbible@gmail.com'}]})
+		    			       User.find({$or: [{_id:{ $in : users }},{email:'everywordbible@gmail.com'}]})
 		    			       .stream()
 		    			       .on('data',function(user) {
 		    			    	   following.push(user);
@@ -393,7 +393,7 @@ exports.getFollowing = function(req, res) {
 		    		    		})
 		    	  			  	.on('end',function(){
 		    	  			  		following = _.sortBy(following,'_id');
-		    	  			  		follow.following=_.map(following, function(f){return {"id":u._id,"name":u.name}});
+		    	  			  		follow.following=_.map(following, function(f){return {"id":f._id,"name":f.name}});
 		    	  			  		follow.save();
 		    	  			  		return sendJSON(res,following);
 		    	  			  	});  	    	  

@@ -24,13 +24,12 @@ function populateFeed(u) {
 	var uniqUsers = remove_dupes([ u._id ].concat(allMembers).concat(following));		
 	var fe = db.feedentries.find({user:{$in:uniqUsers}}).toArray();
 	var entries=[];
-	var oldfeed = db.newfeeds.find({owner:u._id}).toArray()
+	var oldfeed = db.newfeeds.find({owner:u._id}).toArray();
 	oldfeed = oldfeed.length != 0 ? oldfeed[0].entries.map(function(e){return e.id;}) : [];
 	for(var n in fe) {
 		var f = fe[n];
 		if (oldfeed.indexOf(f._id) === -1) {
 			var user = db.users.count({_id : f.user});
-//			user = user.length != 0 ?  user[0] : undefined;
 			if(user===0)continue;
 			
 			var entry = {
@@ -44,11 +43,11 @@ function populateFeed(u) {
 	}
     if(entries.length>0){
     	print("inserting feed of size: "+entries.length+" for user "+u.name);
-    	var fc = db.newfeeds.count({owner:u.id});
-    	if(fc==0){
+    	var fc = db.newfeeds.count({owner:u._id});
+    	if(fc===0){
     		db.newfeeds.insert({owner:u._id, entries: entries});
     	} else {
-    		db.newfeeds.update({ownser:u._id},{ "$push" : { "entries": { $each: entries } } })
+    		db.newfeeds.update({owner:u._id},{ $push : { entries: { $each: entries } } });
     	}    	
     }
 			
