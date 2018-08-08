@@ -11,6 +11,10 @@ var express = require('express');
 var mongoose = require('mongoose');
 //mongoose.set('debug', true);
 var config = require('./config/environment');
+var opts = process.argv.slice(2);
+if (opts.length !== 0 && opts[0].indexOf('port') !== -1){
+	config.port = Number(opts[0].split('=')[1]);
+}
 var mockdb = null;
 // Connect to database
 if(process.env.NODE_ENV==='test'){
