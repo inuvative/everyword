@@ -49,7 +49,7 @@ exports.show = function(req, res) {
     		}
             var groupMembers = _.map(_.flatMap(homebase.groups,function(g) { return g.members.concat(g.creator);}),function(m){return m.toJSON();});
             var userIds = _.uniq(following.concat(groupMembers));
-            return sendJSON(res,{'homebase': {'login':homebase.login, 'tag':homebase.tags}, 'userIds':userIds});    	    		
+            return sendJSON(res,{'homebase': {'login':homebase.login, 'tag':homebase.tags,'books': homebase.books}, 'userIds':userIds});    	    		
     	})
     }
   });
@@ -76,16 +76,11 @@ exports.update = function(req, res) {
     var groupsMembers = _.flatMap(groups,'members').map(function(m){return m.id;});
     //var following = _.map(homebase.following, 'id');
     groupsMembers = _.filter(groupsMembers,function(g){return g!==homebase.login});
-    if(req.body.tags){
-	    _.assignWith(homebase, req.body, function(oldVal,newVal){
-	    	if(_.isArray(oldVal)) {
-	    		return oldVal.concat(newVal);
-	    	} else {
-	    		return newVal;
-	    	}});
-	    homebase.save(function (err) {
+    if(req.body.books){
+	    _.assign(homebase, req.body);
+	    homebase.save(function (err,hb) {
 	      if (err) { return handleError(res, err); }
-	      return res.status(200).json(homebase);
+	      return res.status(200).json(hb);
 	    });    		
     }
 //    else if(req.body.unfollow){
