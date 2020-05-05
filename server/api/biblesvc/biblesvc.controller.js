@@ -38,24 +38,29 @@ exports.getTestaments = function(req, res) {
 exports.index = function(req, res) {
   var book = req.params.book;
   var chapter = req.params.chapter;
-  var chapters = getSurroundingChapters(book,chapter);
-  var tt = javascripture.api.reference.getTestament(book);
-  tt = (tt==='hebrew') ? 'ot' : 'nt';
-  bible.get(book+' '+chapter, 'kjv').then(function (verse) {
-	  if(req.body && req.body.userId){
-		  each(verse.text, function(v,next) {
-			  bibleSocket.sendVerse(req.body.userId,v)
-			  next();
-		  },function(err){
-			  console.log("Sending verses to client")
-			  return res.status(200).send({'prev':chapters.prev, 'next':chapters.next, 'testament': tt});
-		  });		  
-	  } else {
-	     return res.status(200).send({'prev':chapters.prev, 'next':chapters.next, 'verses': verse.text, 'testament': tt});		  
-	  }
-  }, function(reason) {
-      return handleError(res, reason);
-  });
+  if (req.query && req.query.version === 'lds')
+  {
+    getLDSVerses(req,res);
+  } else {
+    var chapters = getSurroundingChapters(book,chapter);
+    var tt = javascripture.api.reference.getTestament(book);
+    tt = (tt==='hebrew') ? 'ot' : 'nt';
+    bible.get(book+' '+chapter, 'kjv').then(function (verse) {
+        if(req.body && req.body.userId){
+            each(verse.text, function(v,next) {
+                bibleSocket.sendVerse(req.body.userId,v)
+                next();
+            },function(err){
+                console.log("Sending verses to client")
+                return res.status(200).send({'prev':chapters.prev, 'next':chapters.next, 'testament': tt});
+            });		  
+        } else {
+            return res.status(200).send({'prev':chapters.prev, 'next':chapters.next, 'verses': verse.text, 'testament': tt});		  
+        }
+    }, function(reason) {
+        return handleError(res, reason);
+    });
+  }
 };
 
 //Get list of biblesvcs
@@ -92,23 +97,29 @@ function getLDSVerses(req,res) {
   LDS.find({'book_title': book, 'chapter_number': chapter}, function(err,lds) {
 	  if(err) { return handleError(res, err); }
 	  if(lds && lds.length != 0){
-		  getLDSSurroundingChapters(lds[0].book_id,lds[0].chapter_id).then(function(chapters) {
+          var testament = lds.volume_short_title;
+		  getLDSSurroundingChapters(lds[0].volume_id,lds[0].chapter_id).then(function(chapters) {
 			  var verses = _.sortBy(_.map(lds,function(s) { return { 'verse': s.verse_number,'text': s.scripture_text}}),['verse']);
-			  each(verses, function(v,next) {
-				  bibleSocket.sendVerse(req.body.userId,v)
-				  next();
-			  },function(err){
-				  console.log("Sending verses to client")
-				  return res.status(200).send({'prev':chapters.prev, 'next':chapters.next});
-			  });
+			  if(req.body && req.body.userId) 
+              {
+                each(verses, function(v,next) {
+                    bibleSocket.sendVerse(req.body.userId,v)
+                    next();
+                },function(err){
+                    console.log("Sending verses to client")
+                    return res.status(200).send({'prev':chapters.prev, 'next':chapters.next, 'testament': testament});
+                });
+              } else {
+                  return res.status(200).send({'prev':chapters.prev, 'next':chapters.next, 'verses': verses, 'testament': testament});
+              }
 		  })
 	  }
   })
 }
 
-function getLDSSurroundingChapters(bookId,chapterId){
+function getLDSSurroundingChapters(volumeId,chapterId){
 	return new Promise(function(resolve,reject) {
-		LDS.find({"chapter_id" :{ "$or" : [chapterId+1, chapterId-1]}}, function(err,chapters) {
+		LDS.find({"volume_id": volumeId, "chapter_id" :{ "$in" : [chapterId+1, chapterId-1]}}, function(err,chapters) {
 			var prev = _.find(chapters,['chapter_id',chapterId-1]);
 			var next = _.find(chapters,['chapter_id',chapterId+1]);
 			if(!prev){
@@ -154,7 +165,11 @@ function getLDSBooks(req, res) {
         { "$sort" : { id : 1}}
     ],
 	function(err,ldsBooks) {
-		var books = _.map(ldsBooks, function(book) { return _.pick(book, ["name", "chapters"])})
+		var books = _.map(ldsBooks, function(book) { 
+            var b = _.pick(book, ["name", "chapters"]);
+            b.chapters = _.sortBy(_.map(b.chapters,function(c) { return Number(c); }));
+            return b;
+        })
 		return res.status(200).send(books)
 	});
 }

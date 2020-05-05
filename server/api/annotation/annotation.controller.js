@@ -17,6 +17,7 @@ var Follow = require('../homebase/follow.model');
 
 var javascripture = require('../../components/javascripture');
 
+var LDS = require('../biblesvc/lds.model');
 
 // Get list of annotations
 exports.index = function(req, res) {
@@ -126,9 +127,19 @@ exports.findAnnotation = function(req, res) {
       var query={ $or: [{'comments': annoEntryId},{'media': annoEntryId}, {'references': annoEntryId}]};
       Annotation.findOne(query, function(err, anno) {
 		    if(!anno){return res.send(null);}
-		    var tt = javascripture.api.reference.getTestament(anno.book);	
-		    tt = (tt==='hebrew') ? 'ot' : 'nt';
-	    	return res.status(200).json({testament: tt, book: anno.book, chapter: anno.chapter, verse: anno.verse});
+            LDS.findOne({book_title : anno.book}, {volume_short_title : 1}, function(err, book) {
+                if (err) {
+                    return handleError(res,err);
+                }
+                var tt;
+                if (book && book.volume_short_title) {
+                    tt = book.volume_short_title.toLowerCase();
+                } else  {
+                    tt = javascripture.api.reference.getTestament(anno.book);
+                    tt = (tt==='hebrew') ? 'ot' : 'nt';
+                }
+                return res.status(200).json({testament: tt, book: anno.book, chapter: anno.chapter, verse: anno.verse});
+            })
       });
 };
 
