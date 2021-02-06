@@ -1,3 +1,122 @@
+## 1.0.29 (2020-12-21)
+[Compare `@uirouter/angularjs` versions 1.0.28 and 1.0.29](https://github.com/angular-ui/ui-router/compare/1.0.28...1.0.29)
+
+
+---
+
+
+### Updated `@uirouter/core` from 6.0.6 to 6.0.7
+
+
+Changelog for `@uirouter/core`:
+
+
+[Compare `@uirouter/core` versions 6.0.6 and 6.0.7](https://github.com/ui-router/core/compare/6.0.6...6.0.7)
+
+### Bug Fixes
+
+* **array:** Fix decoding of array-type query parameters ([44ebfae](https://github.com/ui-router/core/commit/44ebfae))
+
+- Note: this fix does not affect angularjs
+
+## 1.0.28 (2020-08-08)
+[Compare `@uirouter/angularjs` versions 1.0.27 and 1.0.28](https://github.com/angular-ui/ui-router/compare/1.0.27...1.0.28)
+
+### Bug Fixes
+
+* should not transition states when alt-clicked ([8080adb](https://github.com/angular-ui/ui-router/commit/8080adb))
+
+## 1.0.27 (2020-07-21)
+[Compare `@uirouter/angularjs` versions 1.0.26 and 1.0.27](https://github.com/angular-ui/ui-router/compare/1.0.26...1.0.27)
+
+### Bug Fixes
+
+* make augmented StateRegistry.register overload better match the signature in core ([db4e63f](https://github.com/angular-ui/ui-router/commit/db4e63f))
+
+
+---
+
+### Updated `@uirouter/core` from 6.0.5 to 6.0.6
+
+
+Changelog for `@uirouter/core`:
+
+
+[Compare `@uirouter/core` versions 6.0.5 and 6.0.6](https://github.com/ui-router/core/compare/6.0.5...6.0.6)
+
+### Bug Fixes
+
+* **params:** Bi-directionally en/decode path and search params. ([#618](https://github.com/ui-router/core/issues/618)) ([89e99cd](https://github.com/ui-router/core/commit/89e99cd))
+
+
+## 1.0.26 (2020-04-29)
+[Compare `@uirouter/angularjs` versions 1.0.25 and 1.0.26](https://github.com/angular-ui/ui-router/compare/1.0.25...1.0.26)
+
+
+---
+
+
+### Updated `@uirouter/core` from 6.0.4 to 6.0.5
+
+
+Changelog for `@uirouter/core`:
+
+
+[Compare `@uirouter/core` versions 6.0.4 and 6.0.5](https://github.com/ui-router/core/compare/6.0.4...6.0.5)
+
+### Bug Fixes
+
+* **TargetState:** make isDef check more thorough ([e657cfe](https://github.com/ui-router/core/commit/e657cfe))
+
+
+### Features
+
+* **urlRuleFactory:** Add support for StateDeclarations in UrlRuleFactory.fromState() ([539d33a](https://github.com/ui-router/core/commit/539d33a))
+
+## 1.0.25 (2020-02-04)
+[Compare `@uirouter/angularjs` versions 1.0.24 and 1.0.25](https://github.com/angular-ui/ui-router/compare/1.0.24...1.0.25)
+
+
+---
+
+
+### Updated `@uirouter/core` from 6.0.3 to 6.0.4
+
+
+Changelog for `@uirouter/core`:
+
+
+[Compare `@uirouter/core` versions 6.0.3 and 6.0.4](https://github.com/ui-router/core/compare/6.0.3...6.0.4)
+
+### Bug Fixes
+
+* **safeConsole:** check if document is defined to avoid issues in node environments ([da29d88](https://github.com/ui-router/core/commit/da29d88))
+
+## 1.0.24 (2019-12-30)
+[Compare `@uirouter/angularjs` versions 1.0.23 and 1.0.24](https://github.com/angular-ui/ui-router/compare/1.0.23...1.0.24)
+
+
+---
+
+
+### Updated `@uirouter/core` from 6.0.1 to 6.0.3
+
+
+Changelog for `@uirouter/core`:
+
+
+[Compare `@uirouter/core` versions 6.0.1 and 6.0.3](https://github.com/ui-router/core/compare/6.0.1...6.0.3)
+
+### Bug Fixes
+
+* **hof:** Rewrite curry from scratch ([fc324c6](https://github.com/ui-router/core/commit/fc324c6)), closes [#350](https://github.com/ui-router/core/issues/350)
+* **IE9:** Add safeConsole so IE9 doesn't break ([9c8579d](https://github.com/ui-router/core/commit/9c8579d))
+
+
+### Features
+
+* **stateService:** add transition option 'supercede' so transition can be ignored if one is pending ([6e5a56f](https://github.com/ui-router/core/commit/6e5a56f))
+
 ## 1.0.23 (2019-10-02)
 [Compare `@uirouter/angularjs` versions 1.0.22 and 1.0.23](https://github.com/angular-ui/ui-router/compare/1.0.22...1.0.23)
 

@@ -4,7 +4,7 @@
  *         This causes it to be incompatible with plugins that depend on @uirouter/core.
  *         We recommend switching to the ui-router-core.js and ui-router-angularjs.js bundles instead.
  *         For more information, see https://ui-router.github.io/blog/uirouter-for-angularjs-umd-bundles
- * @version v1.0.23
+ * @version v1.0.29
  * @link https://ui-router.github.io
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
@@ -12,7 +12,7 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('angular')) :
     typeof define === 'function' && define.amd ? define(['exports', 'angular'], factory) :
     (global = global || self, factory(global['@uirouter/angularjs'] = {}, global.angular));
-}(this, function (exports, ng_from_import) { 'use strict';
+}(this, (function (exports, ng_from_import) { 'use strict';
 
     /** @publicapi @module ng1 */ /** */
     /** @hidden */ var ng_from_global = angular;
@@ -23,8 +23,15 @@
      *
      * These utility functions are exported, but are subject to change without notice.
      *
-     * @module common_hof
-     */ /** */
+     * @packageDocumentation
+     */
+    var __spreadArrays = (undefined && undefined.__spreadArrays) || function () {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    };
     /**
      * Returns a new function for [Partial Application](https://en.wikipedia.org/wiki/Partial_application) of the original function.
      *
@@ -63,22 +70,17 @@
      *
      * ```
      *
-     * Stolen from: http://stackoverflow.com/questions/4394747/javascript-curry-function
-     *
      * @param fn
      * @returns {*|function(): (*|any)}
      */
     function curry(fn) {
-        var initial_args = [].slice.apply(arguments, [1]);
-        var func_args_length = fn.length;
-        function curried(args) {
-            if (args.length >= func_args_length)
-                return fn.apply(null, args);
-            return function () {
-                return curried(args.concat([].slice.apply(arguments)));
-            };
-        }
-        return curried(initial_args);
+        return function curried() {
+            if (arguments.length >= fn.length) {
+                return fn.apply(this, arguments);
+            }
+            var args = Array.prototype.slice.call(arguments);
+            return curried.bind.apply(curried, __spreadArrays([this], args));
+        };
     }
     /**
      * Given a varargs list of functions, returns a function that composes the argument functions, right-to-left
@@ -239,13 +241,14 @@
         };
     }
 
-    /** Predicates
+    /**
+     * Predicates
      *
      * These predicates return true/false based on the input.
      * Although these functions are exported, they are subject to change without notice.
      *
-     * @module common_predicates
-     */ /** */
+     * @packageDocumentation
+     */
     var toStr = Object.prototype.toString;
     var tis = function (t) { return function (x) { return typeof x === t; }; };
     var isUndefined = tis('undefined');
@@ -290,13 +293,13 @@
         $injector: undefined,
     };
 
-    /**
-     * Random utility functions used in the UI-Router code
-     *
-     * These functions are exported, but are subject to change without notice.
-     *
-     * @preferred @publicapi @module common
-     */ /** */
+    var __spreadArrays$1 = (undefined && undefined.__spreadArrays) || function () {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    };
     var root = (typeof self === 'object' && self.self === self && self) ||
         (typeof global === 'object' && global.global === global && global) ||
         undefined;
@@ -424,7 +427,7 @@
         for (var _i = 1; _i < arguments.length; _i++) {
             defaultsList[_i - 1] = arguments[_i];
         }
-        var defaultVals = extend.apply(void 0, [{}].concat(defaultsList.reverse()));
+        var defaultVals = extend.apply(void 0, __spreadArrays$1([{}], defaultsList.reverse()));
         return extend(defaultVals, pick(opts || {}, Object.keys(defaultVals)));
     }
     /** Reduce function that merges each element of the list into a single object, using extend */
@@ -817,7 +820,6 @@
     var silenceUncaughtInPromise = function (promise) { return promise.catch(function (e) { return 0; }) && promise; };
     var silentRejection = function (error) { return silenceUncaughtInPromise(services.$q.reject(error)); };
 
-    /** @publicapi @module core */
     /**
      * Matches state names using glob-like pattern strings.
      *
@@ -865,6 +867,7 @@
      * | `'**.X'`    | `'X'` , `'A.X'` , `'Z.Y.X'`                   | `'A'` , `'A.login.Z'`             |
      * | `'A.**.X'`  | `'A.X'` , `'A.B.X'` , `'A.B.C.X'`             | `'A'` , `'A.B.C'`                 |
      *
+     * @packageDocumentation
      */
     var Glob = /** @class */ (function () {
         function Glob(text) {
@@ -896,7 +899,6 @@
         return Glob;
     }());
 
-    /** @publicapi @module common */ /** */
     var Queue = /** @class */ (function () {
         function Queue(_items, _limit) {
             if (_items === void 0) { _items = []; }
@@ -944,7 +946,7 @@
         return Queue;
     }());
 
-    /** @publicapi @module transition */ /** */
+    /** An enum for Transition Rejection reasons */
 
     (function (RejectType) {
         /**
@@ -984,11 +986,11 @@
          */
         RejectType[RejectType["ERROR"] = 6] = "ERROR";
     })(exports.RejectType || (exports.RejectType = {}));
-    /** @hidden */
+    /** @internal */
     var id = 0;
     var Rejection = /** @class */ (function () {
         function Rejection(type, message, detail) {
-            /** @hidden */
+            /** @internal */
             this.$id = id++;
             this.type = type;
             this.message = message;
@@ -1060,8 +1062,8 @@
      *
      * Although these functions are exported, they are subject to change without notice.
      *
-     * @module common_strings
-     */ /** */
+     * @packageDocumentation
+     */
     /**
      * Returns a string shortened to a maximum length
      *
@@ -1188,6 +1190,40 @@
     }
 
     /**
+     * workaround for missing console object in IE9 when dev tools haven't been opened o_O
+     * @packageDocumentation
+     */
+    var noopConsoleStub = { log: noop, error: noop, table: noop };
+    function ie9Console(console) {
+        var bound = function (fn) { return Function.prototype.bind.call(fn, console); };
+        return {
+            log: bound(console.log),
+            error: bound(console.log),
+            table: bound(console.log),
+        };
+    }
+    function fallbackConsole(console) {
+        var log = console.log.bind(console);
+        var error = console.error ? console.error.bind(console) : log;
+        var table = console.table ? console.table.bind(console) : log;
+        return { log: log, error: error, table: table };
+    }
+    function getSafeConsole() {
+        // @ts-ignore
+        var isIE9 = typeof document !== 'undefined' && document.documentMode && document.documentMode === 9;
+        if (isIE9) {
+            return window && window.console ? ie9Console(window.console) : noopConsoleStub;
+        }
+        else if (!console.table || !console.error) {
+            return fallbackConsole(console);
+        }
+        else {
+            return console;
+        }
+    }
+    var safeConsole = getSafeConsole();
+
+    /**
      * # Transition tracing (debug)
      *
      * Enable transition tracing to print transition information to the console,
@@ -1219,29 +1255,22 @@
      * app.run($trace => $trace.enable());
      * ```
      *
-     * @publicapi @module trace
+     * @packageDocumentation
      */
-    /** @hidden */
     function uiViewString(uiview) {
         if (!uiview)
             return 'ui-view (defunct)';
         var state = uiview.creationContext ? uiview.creationContext.name || '(root)' : '(none)';
         return "[ui-view#" + uiview.id + " " + uiview.$type + ":" + uiview.fqn + " (" + uiview.name + "@" + state + ")]";
     }
-    /** @hidden */
     var viewConfigString = function (viewConfig) {
         var view = viewConfig.viewDecl;
         var state = view.$context.name || '(root)';
         return "[View#" + viewConfig.$id + " from '" + state + "' state]: target ui-view: '" + view.$uiViewName + "@" + view.$uiViewContextAnchor + "'";
     };
-    /** @hidden */
     function normalizedCat(input) {
         return isNumber(input) ? exports.Category[input] : exports.Category[exports.Category[input]];
     }
-    /** @hidden */
-    var consoleLog = Function.prototype.bind.call(console.log, console);
-    /** @hidden */
-    var consoletable = isFunction(console.table) ? console.table.bind(console) : consoleLog.bind(console);
     /**
      * Trace categories Enum
      *
@@ -1263,23 +1292,20 @@
         Category[Category["UIVIEW"] = 3] = "UIVIEW";
         Category[Category["VIEWCONFIG"] = 4] = "VIEWCONFIG";
     })(exports.Category || (exports.Category = {}));
-    /** @hidden */
     var _tid = parse('$id');
-    /** @hidden */
     var _rid = parse('router.$id');
-    /** @hidden */
     var transLbl = function (trans) { return "Transition #" + _tid(trans) + "-" + _rid(trans); };
     /**
      * Prints UI-Router Transition trace information to the console.
      */
     var Trace = /** @class */ (function () {
-        /** @hidden */
+        /** @internal */
         function Trace() {
-            /** @hidden */
+            /** @internal */
             this._enabled = {};
             this.approximateDigests = 0;
         }
-        /** @hidden */
+        /** @internal */
         Trace.prototype._set = function (enabled, categories) {
             var _this = this;
             if (!categories.length) {
@@ -1316,75 +1342,75 @@
         Trace.prototype.enabled = function (category) {
             return !!this._enabled[normalizedCat(category)];
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceTransitionStart = function (trans) {
             if (!this.enabled(exports.Category.TRANSITION))
                 return;
-            console.log(transLbl(trans) + ": Started  -> " + stringify(trans));
+            safeConsole.log(transLbl(trans) + ": Started  -> " + stringify(trans));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceTransitionIgnored = function (trans) {
             if (!this.enabled(exports.Category.TRANSITION))
                 return;
-            console.log(transLbl(trans) + ": Ignored  <> " + stringify(trans));
+            safeConsole.log(transLbl(trans) + ": Ignored  <> " + stringify(trans));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceHookInvocation = function (step, trans, options) {
             if (!this.enabled(exports.Category.HOOK))
                 return;
             var event = parse('traceData.hookType')(options) || 'internal', context = parse('traceData.context.state.name')(options) || parse('traceData.context')(options) || 'unknown', name = functionToString(step.registeredHook.callback);
-            console.log(transLbl(trans) + ":   Hook -> " + event + " context: " + context + ", " + maxLength(200, name));
+            safeConsole.log(transLbl(trans) + ":   Hook -> " + event + " context: " + context + ", " + maxLength(200, name));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceHookResult = function (hookResult, trans, transitionOptions) {
             if (!this.enabled(exports.Category.HOOK))
                 return;
-            console.log(transLbl(trans) + ":   <- Hook returned: " + maxLength(200, stringify(hookResult)));
+            safeConsole.log(transLbl(trans) + ":   <- Hook returned: " + maxLength(200, stringify(hookResult)));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceResolvePath = function (path, when, trans) {
             if (!this.enabled(exports.Category.RESOLVE))
                 return;
-            console.log(transLbl(trans) + ":         Resolving " + path + " (" + when + ")");
+            safeConsole.log(transLbl(trans) + ":         Resolving " + path + " (" + when + ")");
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceResolvableResolved = function (resolvable, trans) {
             if (!this.enabled(exports.Category.RESOLVE))
                 return;
-            console.log(transLbl(trans) + ":               <- Resolved  " + resolvable + " to: " + maxLength(200, stringify(resolvable.data)));
+            safeConsole.log(transLbl(trans) + ":               <- Resolved  " + resolvable + " to: " + maxLength(200, stringify(resolvable.data)));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceError = function (reason, trans) {
             if (!this.enabled(exports.Category.TRANSITION))
                 return;
-            console.log(transLbl(trans) + ": <- Rejected " + stringify(trans) + ", reason: " + reason);
+            safeConsole.log(transLbl(trans) + ": <- Rejected " + stringify(trans) + ", reason: " + reason);
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceSuccess = function (finalState, trans) {
             if (!this.enabled(exports.Category.TRANSITION))
                 return;
-            console.log(transLbl(trans) + ": <- Success  " + stringify(trans) + ", final state: " + finalState.name);
+            safeConsole.log(transLbl(trans) + ": <- Success  " + stringify(trans) + ", final state: " + finalState.name);
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceUIViewEvent = function (event, viewData, extra) {
             if (extra === void 0) { extra = ''; }
             if (!this.enabled(exports.Category.UIVIEW))
                 return;
-            console.log("ui-view: " + padString(30, event) + " " + uiViewString(viewData) + extra);
+            safeConsole.log("ui-view: " + padString(30, event) + " " + uiViewString(viewData) + extra);
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceUIViewConfigUpdated = function (viewData, context) {
             if (!this.enabled(exports.Category.UIVIEW))
                 return;
             this.traceUIViewEvent('Updating', viewData, " with ViewConfig from context='" + context + "'");
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceUIViewFill = function (viewData, html) {
             if (!this.enabled(exports.Category.UIVIEW))
                 return;
             this.traceUIViewEvent('Fill', viewData, " with: " + maxLength(200, html));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceViewSync = function (pairs) {
             if (!this.enabled(exports.Category.VIEWCONFIG))
                 return;
@@ -1399,19 +1425,19 @@
                 return _b = {}, _b[uivheader] = uiv, _b[cfgheader] = cfg, _b;
             })
                 .sort(function (a, b) { return (a[uivheader] || '').localeCompare(b[uivheader] || ''); });
-            consoletable(mapping);
+            safeConsole.table(mapping);
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceViewServiceEvent = function (event, viewConfig) {
             if (!this.enabled(exports.Category.VIEWCONFIG))
                 return;
-            console.log("VIEWCONFIG: " + event + " " + viewConfigString(viewConfig));
+            safeConsole.log("VIEWCONFIG: " + event + " " + viewConfigString(viewConfig));
         };
-        /** @internalapi called by ui-router code */
+        /** @internal called by ui-router code */
         Trace.prototype.traceViewServiceUIViewEvent = function (event, viewData) {
             if (!this.enabled(exports.Category.VIEWCONFIG))
                 return;
-            console.log("VIEWCONFIG: " + event + " " + uiViewString(viewData));
+            safeConsole.log("VIEWCONFIG: " + event + " " + uiViewString(viewData));
         };
         return Trace;
     }());
@@ -1426,9 +1452,6 @@
      */
     var trace = new Trace();
 
-    /** @publicapi @module common */ /** */
-
-    /** @publicapi @module params */ /** */
     /**
      * An internal class which implements [[ParamTypeDefinition]].
      *
@@ -1451,7 +1474,6 @@
      *
      * var paramType = new ParamType(paramTypeDef);
      * ```
-     * @internalapi
      */
     var ParamType = /** @class */ (function () {
         /**
@@ -1514,10 +1536,7 @@
         };
         return ParamType;
     }());
-    /**
-     * Wraps up a `ParamType` object to handle array values.
-     * @internalapi
-     */
+    /** Wraps up a `ParamType` object to handle array values. */
     function ArrayType(type, mode) {
         var _this = this;
         // Wrap non-array value as array
@@ -1574,21 +1593,16 @@
         });
     }
 
-    /** @publicapi @module params */ /** */
-    /** @hidden */
     var hasOwn = Object.prototype.hasOwnProperty;
-    /** @hidden */
     var isShorthand = function (cfg) {
         return ['value', 'type', 'squash', 'array', 'dynamic'].filter(hasOwn.bind(cfg || {})).length === 0;
     };
-    /** @internalapi */
 
     (function (DefType) {
         DefType[DefType["PATH"] = 0] = "PATH";
         DefType[DefType["SEARCH"] = 1] = "SEARCH";
         DefType[DefType["CONFIG"] = 2] = "CONFIG";
     })(exports.DefType || (exports.DefType = {}));
-    /** @internalapi */
     function getParamDeclaration(paramName, location, state) {
         var noReloadOnSearch = (state.reloadOnSearch === false && location === exports.DefType.SEARCH) || undefined;
         var dynamic = find([state.dynamic, noReloadOnSearch], isDefined);
@@ -1596,7 +1610,6 @@
         var paramConfig = unwrapShorthand(state && state.params && state.params[paramName]);
         return extend(defaultConfig, paramConfig);
     }
-    /** @hidden */
     function unwrapShorthand(cfg) {
         cfg = isShorthand(cfg) ? { value: cfg } : cfg;
         getStaticDefaultValue['__cacheable'] = true;
@@ -1606,7 +1619,6 @@
         var $$fn = isInjectable(cfg.value) ? cfg.value : getStaticDefaultValue;
         return extend(cfg, { $$fn: $$fn });
     }
-    /** @hidden */
     function getType(cfg, urlType, location, id, paramTypes) {
         if (cfg.type && urlType && urlType.name !== 'string')
             throw new Error("Param '" + id + "' has two type configurations.");
@@ -1626,10 +1638,7 @@
         }
         return cfg.type instanceof ParamType ? cfg.type : paramTypes.type(cfg.type);
     }
-    /**
-     * @internalapi
-     * returns false, true, or the squash value to indicate the "default parameter url squash policy".
-     */
+    /** returns false, true, or the squash value to indicate the "default parameter url squash policy". */
     function getSquashPolicy(config, isOptional, defaultPolicy) {
         var squash = config.squash;
         if (!isOptional || squash === false)
@@ -1640,7 +1649,6 @@
             return squash;
         throw new Error("Invalid squash policy: '" + squash + "'. Valid policies: false, true, or arbitrary string");
     }
-    /** @internalapi */
     function getReplace(config, arrayMode, isOptional, squash) {
         var defaultPolicy = [
             { from: '', to: isOptional || arrayMode ? undefined : '' },
@@ -1652,7 +1660,6 @@
         var configuredKeys = map(replace, prop('from'));
         return filter(defaultPolicy, function (item) { return configuredKeys.indexOf(item.from) === -1; }).concat(replace);
     }
-    /** @internalapi */
     var Param = /** @class */ (function () {
         function Param(id, type, location, urlConfig, state) {
             var config = getParamDeclaration(id, location, state);
@@ -1774,7 +1781,6 @@
         return Param;
     }());
 
-    /** @publicapi @module params */ /** */
     /**
      * A registry for parameter types.
      *
@@ -1799,13 +1805,9 @@
      * ```
      */
     var ParamTypes = /** @class */ (function () {
-        /** @internalapi */
         function ParamTypes() {
-            /** @hidden */
             this.enqueue = true;
-            /** @hidden */
             this.typeQueue = [];
-            /** @internalapi */
             this.defaultTypes = pick(ParamTypes.prototype, [
                 'hash',
                 'string',
@@ -1821,7 +1823,6 @@
             var makeType = function (definition, name) { return new ParamType(extend({ name: name }, definition)); };
             this.types = inherit(map(this.defaultTypes, makeType), {});
         }
-        /** @internalapi */
         ParamTypes.prototype.dispose = function () {
             this.types = {};
         };
@@ -1843,7 +1844,6 @@
             }
             return this;
         };
-        /** @internalapi */
         ParamTypes.prototype._flushTypeQueue = function () {
             while (this.typeQueue.length) {
                 var type = this.typeQueue.shift();
@@ -1854,7 +1854,6 @@
         };
         return ParamTypes;
     }());
-    /** @hidden */
     function initDefaultTypes() {
         var makeDefaultType = function (def) {
             var valToString = function (val) { return (val != null ? val.toString() : val); };
@@ -1928,8 +1927,6 @@
     }
     initDefaultTypes();
 
-    /** @publicapi @module params */ /** */
-    /** @internalapi */
     var StateParams = /** @class */ (function () {
         function StateParams(params) {
             if (params === void 0) { params = {}; }
@@ -1964,7 +1961,6 @@
         return StateParams;
     }());
 
-    /** @internalapi @module path */ /** */
     /**
      * A node in a [[TreeChanges]] path
      *
@@ -2037,7 +2033,6 @@
         return PathNode;
     }());
 
-    /** @publicapi @module state */ /** */
     /**
      * Encapsulate the target (destination) state/params/options of a [[Transition]].
      *
@@ -2080,7 +2075,7 @@
          * @param _params Parameters for the target state
          * @param _options Transition options.
          *
-         * @internalapi
+         * @internal
          */
         function TargetState(_stateRegistry, _identifier, _params, _options) {
             this._stateRegistry = _stateRegistry;
@@ -2171,11 +2166,12 @@
             return new TargetState(this._stateRegistry, this._identifier, this._params, newOpts);
         };
         /** Returns true if the object has a state property that might be a state or state name */
-        TargetState.isDef = function (obj) { return obj && obj.state && (isString(obj.state) || isString(obj.state.name)); };
+        TargetState.isDef = function (obj) {
+            return obj && obj.state && (isString(obj.state) || (isObject(obj.state) && isString(obj.state.name)));
+        };
         return TargetState;
     }());
 
-    /** @internalapi @module path */ /** */
     /**
      * This class contains functions which convert TargetStates, Nodes and paths from one type to another.
      */
@@ -2339,9 +2335,6 @@
         return PathUtils;
     }());
 
-    /** @internalapi @module path */ /** */
-
-    /** @internalapi */
     var resolvePolicies = {
         when: {
             LAZY: 'LAZY',
@@ -2350,11 +2343,9 @@
         async: {
             WAIT: 'WAIT',
             NOWAIT: 'NOWAIT',
-            RXWAIT: 'RXWAIT',
         },
     };
 
-    /** @publicapi @module resolve */ /** */
     // TODO: explicitly make this user configurable
     var defaultResolvePolicy = {
         when: 'LAZY',
@@ -2421,7 +2412,6 @@
             };
             // Invokes the resolve function passing the resolved dependencies as arguments
             var invokeResolveFn = function (resolvedDeps) { return _this.resolveFn.apply(null, resolvedDeps); };
-            // If the resolve policy is RXWAIT, wait for the observable to emit something. otherwise pass through.
             var node = resolveContext.findNode(this);
             var state = node && node.state;
             var asyncPolicy = this.getPolicy(state).async;
@@ -2461,7 +2451,6 @@
         return Resolvable;
     }());
 
-    /** @publicapi @module resolve */ /** */
     var whens = resolvePolicies.when;
     var ALL_WHENS = [whens.EAGER, whens.LAZY];
     var EAGER_WHENS = [whens.EAGER];
@@ -2623,7 +2612,7 @@
         };
         return ResolveContext;
     }());
-    /** @internalapi */
+    /** @internal */
     var UIInjectorImpl = /** @class */ (function () {
         function UIInjectorImpl(context) {
             this.context = context;
@@ -2654,9 +2643,6 @@
         return UIInjectorImpl;
     }());
 
-    /** @publicapi @module resolve */ /** */
-
-    /** @publicapi @module state */ /** */
     var parseUrl = function (url) {
         if (!isString(url))
             return false;
@@ -2821,7 +2807,7 @@
         return items.map(item2Resolvable);
     }
     /**
-     * @internalapi A internal global service
+     * A internal global service
      *
      * StateBuilder is a factory for the internal [[StateObject]] objects.
      *
@@ -2863,16 +2849,6 @@
                 resolvables: [resolvablesBuilder],
             };
         }
-        /**
-         * Registers a [[BuilderFunction]] for a specific [[StateObject]] property (e.g., `parent`, `url`, or `path`).
-         * More than one BuilderFunction can be registered for a given property.
-         *
-         * The BuilderFunction(s) will be used to define the property on any subsequently built [[StateObject]] objects.
-         *
-         * @param name The name of the State property being registered for.
-         * @param fn The BuilderFunction which will be used to build the State property
-         * @returns a function which deregisters the BuilderFunction
-         */
         StateBuilder.prototype.builder = function (name, fn) {
             var builders = this.builders;
             var array = builders[name] || [];
@@ -3038,12 +3014,13 @@
         StateObject.isStateClass = function (stateDecl) {
             return isFunction(stateDecl) && stateDecl['__uiRouterState'] === true;
         };
+        /** Predicate which returns true if the object is a [[StateDeclaration]] object */
+        StateObject.isStateDeclaration = function (obj) { return isFunction(obj['$$state']); };
         /** Predicate which returns true if the object is an internal [[StateObject]] object */
         StateObject.isState = function (obj) { return isObject(obj['__stateObjectCache']); };
         return StateObject;
     }());
 
-    /** @publicapi @module state */ /** */
     var StateMatcher = /** @class */ (function () {
         function StateMatcher(_states) {
             this._states = _states;
@@ -3068,8 +3045,7 @@
                 var _states = values(this._states);
                 var matches = _states.filter(function (_state) { return _state.__stateObjectCache.nameGlob && _state.__stateObjectCache.nameGlob.matches(name); });
                 if (matches.length > 1) {
-                    // tslint:disable-next-line:no-console
-                    console.log("stateMatcher.find: Found multiple matches for " + name + " using glob: ", matches.map(function (match) { return match.name; }));
+                    safeConsole.error("stateMatcher.find: Found multiple matches for " + name + " using glob: ", matches.map(function (match) { return match.name; }));
                 }
                 return matches[0];
             }
@@ -3101,8 +3077,6 @@
         return StateMatcher;
     }());
 
-    /** @publicapi @module state */ /** */
-    /** @internalapi */
     var StateQueueManager = /** @class */ (function () {
         function StateQueueManager(router, states, builder, listeners) {
             this.router = router;
@@ -3111,7 +3085,6 @@
             this.listeners = listeners;
             this.queue = [];
         }
-        /** @internalapi */
         StateQueueManager.prototype.dispose = function () {
             this.queue = [];
         };
@@ -3136,7 +3109,9 @@
             var getState = function (name) { return _this.states.hasOwnProperty(name) && _this.states[name]; };
             var notifyListeners = function () {
                 if (registered.length) {
-                    _this.listeners.forEach(function (listener) { return listener('registered', registered.map(function (s) { return s.self; })); });
+                    _this.listeners.forEach(function (listener) {
+                        return listener('registered', registered.map(function (s) { return s.self; }));
+                    });
                 }
             };
             while (queue.length > 0) {
@@ -3187,19 +3162,24 @@
         return StateQueueManager;
     }());
 
-    /** @publicapi @module state */ /** */
+    /**
+     * A registry for all of the application's [[StateDeclaration]]s
+     *
+     * This API is found at `router.stateRegistry` ([[UIRouter.stateRegistry]])
+     */
     var StateRegistry = /** @class */ (function () {
-        /** @internalapi */
+        /** @internal */
         function StateRegistry(router) {
             this.router = router;
             this.states = {};
+            /** @internal */
             this.listeners = [];
             this.matcher = new StateMatcher(this.states);
             this.builder = new StateBuilder(this.matcher, router.urlMatcherFactory);
             this.stateQueue = new StateQueueManager(router, this.states, this.builder, this.listeners);
             this._registerRoot();
         }
-        /** @internalapi */
+        /** @internal */
         StateRegistry.prototype._registerRoot = function () {
             var rootStateDef = {
                 name: '',
@@ -3213,7 +3193,7 @@
             var _root = (this._root = this.stateQueue.register(rootStateDef));
             _root.navigable = null;
         };
-        /** @internalapi */
+        /** @internal */
         StateRegistry.prototype.dispose = function () {
             var _this = this;
             this.stateQueue.dispose();
@@ -3283,7 +3263,7 @@
         StateRegistry.prototype.register = function (stateDefinition) {
             return this.stateQueue.register(stateDefinition);
         };
-        /** @hidden */
+        /** @internal */
         StateRegistry.prototype._deregisterTree = function (state) {
             var _this = this;
             var all = this.get().map(function (s) { return s.$$state(); });
@@ -3319,7 +3299,9 @@
             if (!_state)
                 throw new Error("Can't deregister state; not found: " + stateOrName);
             var deregisteredStates = this._deregisterTree(_state.$$state());
-            this.listeners.forEach(function (listener) { return listener('deregistered', deregisteredStates.map(function (s) { return s.self; })); });
+            this.listeners.forEach(function (listener) {
+                return listener('deregistered', deregisteredStates.map(function (s) { return s.self; }));
+            });
             return deregisteredStates;
         };
         StateRegistry.prototype.get = function (stateOrName, base) {
@@ -3329,8 +3311,18 @@
             var found = this.matcher.find(stateOrName, base);
             return (found && found.self) || null;
         };
-        StateRegistry.prototype.decorator = function (name, func) {
-            return this.builder.builder(name, func);
+        /**
+         * Registers a [[BuilderFunction]] for a specific [[StateObject]] property (e.g., `parent`, `url`, or `path`).
+         * More than one BuilderFunction can be registered for a given property.
+         *
+         * The BuilderFunction(s) will be used to define the property on any subsequently built [[StateObject]] objects.
+         *
+         * @param property The name of the State property being registered for.
+         * @param builderFunction The BuilderFunction which will be used to build the State property
+         * @returns a function which deregisters the BuilderFunction
+         */
+        StateRegistry.prototype.decorator = function (property, builderFunction) {
+            return this.builder.builder(property, builderFunction);
         };
         return StateRegistry;
     }());
@@ -3348,14 +3340,12 @@
         TransitionHookScope[TransitionHookScope["STATE"] = 1] = "STATE";
     })(exports.TransitionHookScope || (exports.TransitionHookScope = {}));
 
-    /** @publicapi @module transition */ /** */
     var defaultOptions = {
         current: noop,
         transition: null,
         traceData: {},
         bind: null,
     };
-    /** @hidden */
     var TransitionHook = /** @class */ (function () {
         function TransitionHook(transition, stateContext, registeredHook, options) {
             var _this = this;
@@ -3537,11 +3527,10 @@
         return TransitionHook;
     }());
 
-    /** @publicapi @module transition */ /** */
     /**
      * Determines if the given state matches the matchCriteria
      *
-     * @hidden
+     * @internal
      *
      * @param state a State Object to test against
      * @param criterion
@@ -3567,7 +3556,6 @@
         return !!matchFn(state, transition);
     }
     /**
-     * @internalapi
      * The registration data for a registered transition hook
      */
     var RegisteredHook = /** @class */ (function () {
@@ -3669,7 +3657,7 @@
         };
         return RegisteredHook;
     }());
-    /** @hidden Return a registration function of the requested type. */
+    /** Return a registration function of the requested type. */
     function makeEvent(registry, transitionService, eventType) {
         // Create the object which holds the registered transition hooks.
         var _registeredHooks = (registry._registeredHooks = registry._registeredHooks || {});
@@ -3686,7 +3674,6 @@
         return hookRegistrationFn;
     }
 
-    /** @publicapi @module transition */ /** */
     /**
      * This class returns applicable TransitionHooks for a specific Transition instance.
      *
@@ -3699,7 +3686,6 @@
      * The HookBuilder constructor is given the $transitions service and a Transition instance.  Thus, a HookBuilder
      * instance may only be used for one specific Transition object. (side note: the _treeChanges accessor is private
      * in the Transition class, so we must also provide the Transition's _treeChanges)
-     *
      */
     var HookBuilder = /** @class */ (function () {
         function HookBuilder(transition) {
@@ -3798,8 +3784,7 @@
         };
     }
 
-    /** @publicapi @module transition */ /** */
-    /** @hidden */
+    /** @internal */
     var stateSelf = prop('self');
     /**
      * Represents a transition between two states.
@@ -3815,16 +3800,17 @@
          *
          * If the target state is not valid, an error is thrown.
          *
-         * @internalapi
+         * @internal
          *
          * @param fromPath The path of [[PathNode]]s from which the transition is leaving.  The last node in the `fromPath`
          *        encapsulates the "from state".
          * @param targetState The target state and parameters being transitioned to (also, the transition options)
          * @param router The [[UIRouter]] instance
+         * @internal
          */
         function Transition(fromPath, targetState, router) {
             var _this = this;
-            /** @hidden */
+            /** @internal */
             this._deferred = services.$q.defer();
             /**
              * This promise is resolved or rejected based on the outcome of the Transition.
@@ -3833,9 +3819,9 @@
              * When the transition is unsuccessful, the promise is rejected with the [[Rejection]] or javascript error
              */
             this.promise = this._deferred.promise;
-            /** @hidden Holds the hook registration functions such as those passed to Transition.onStart() */
+            /** @internal Holds the hook registration functions such as those passed to Transition.onStart() */
             this._registeredHooks = {};
-            /** @hidden */
+            /** @internal */
             this._hookBuilder = new HookBuilder(this);
             /** Checks if this transition is currently active/running. */
             this.isActive = function () { return _this.router.globals.transition === _this; };
@@ -3854,7 +3840,7 @@
             TransitionHook.invokeHooks(onCreateHooks, function () { return null; });
             this.applyViewConfigs(router);
         }
-        /** @hidden */
+        /** @internal */
         Transition.prototype.onBefore = function (criteria, callback, options) {
             return;
         };
@@ -3886,7 +3872,7 @@
         Transition.prototype.onError = function (criteria, callback, options) {
             return;
         };
-        /** @hidden
+        /** @internal
          * Creates the transition-level hook registration functions
          * (which can then be used to register hooks)
          */
@@ -3897,7 +3883,7 @@
                 .filter(function (type) { return type.hookPhase !== exports.TransitionHookPhase.CREATE; })
                 .forEach(function (type) { return makeEvent(_this, _this.router.transitionService, type); });
         };
-        /** @internalapi */
+        /** @internal */
         Transition.prototype.getHooks = function (hookName) {
             return this._registeredHooks[hookName];
         };
@@ -3906,16 +3892,14 @@
             PathUtils.applyViewConfigs(router.transitionService.$view, this._treeChanges.to, enteringStates);
         };
         /**
-         * @internalapi
-         *
+         * @internal
          * @returns the internal from [State] object
          */
         Transition.prototype.$from = function () {
             return tail(this._treeChanges.from).state;
         };
         /**
-         * @internalapi
-         *
+         * @internal
          * @returns the internal to [State] object
          */
         Transition.prototype.$to = function () {
@@ -4191,9 +4175,7 @@
          * @returns an array of states that will be exited during this transition.
          */
         Transition.prototype.exiting = function () {
-            return map(this._treeChanges.exiting, prop('state'))
-                .map(stateSelf)
-                .reverse();
+            return map(this._treeChanges.exiting, prop('state')).map(stateSelf).reverse();
         };
         /**
          * Gets the states being retained.
@@ -4220,10 +4202,7 @@
             if (pathname === void 0) { pathname = 'entering'; }
             var path = this._treeChanges[pathname];
             path = !state ? path : path.filter(propEq('state', state));
-            return path
-                .map(prop('views'))
-                .filter(identity)
-                .reduce(unnestR, []);
+            return path.map(prop('views')).filter(identity).reduce(unnestR, []);
         };
         Transition.prototype.treeChanges = function (pathname) {
             return pathname ? this._treeChanges[pathname] : this._treeChanges;
@@ -4234,7 +4213,7 @@
          * This transition can be returned from a [[TransitionService]] hook to
          * redirect a transition to a new state and/or set of parameters.
          *
-         * @internalapi
+         * @internal
          *
          * @returns Returns a new [[Transition]] instance.
          */
@@ -4278,7 +4257,7 @@
             });
             return newTransition;
         };
-        /** @hidden If a transition doesn't exit/enter any states, returns any [[Param]] whose value changed */
+        /** @internal If a transition doesn't exit/enter any states, returns any [[Param]] whose value changed */
         Transition.prototype._changedParams = function () {
             var tc = this._treeChanges;
             /** Return undefined if it's not a "dynamic" transition, for the following reasons */
@@ -4327,7 +4306,7 @@
         Transition.prototype.ignored = function () {
             return !!this._ignoredReason();
         };
-        /** @hidden */
+        /** @internal */
         Transition.prototype._ignoredReason = function () {
             var pending = this.router.globals.transition;
             var reloadState = this._options.reloadState;
@@ -4349,7 +4328,7 @@
          *
          * This method is generally called from the [[StateService.transitionTo]]
          *
-         * @internalapi
+         * @internal
          *
          * @returns a promise for a successful transition.
          */
@@ -4452,13 +4431,11 @@
             var id = this.$id, from = isObject(fromStateOrName) ? fromStateOrName.name : fromStateOrName, fromParams = stringify(avoidEmptyHash(this._treeChanges.from.map(prop('paramValues')).reduce(mergeR, {}))), toValid = this.valid() ? '' : '(X) ', to = isObject(toStateOrName) ? toStateOrName.name : toStateOrName, toParams = stringify(avoidEmptyHash(this.params()));
             return "Transition#" + id + "( '" + from + "'" + fromParams + " -> " + toValid + "'" + to + "'" + toParams + " )";
         };
-        /** @hidden */
+        /** @internal */
         Transition.diToken = Transition;
         return Transition;
     }());
 
-    /** @publicapi @module url */ /** */
-    /** @hidden */
     function quoteRegExp(str, param) {
         var surroundPattern = ['', ''], result = str.replace(/[\\\[\]\^$*+?.()|{}]/g, '\\$&');
         if (!param)
@@ -4477,15 +4454,13 @@
         }
         return result + surroundPattern[0] + param.type.pattern.source + surroundPattern[1];
     }
-    /** @hidden */
     var memoizeTo = function (obj, _prop, fn) { return (obj[_prop] = obj[_prop] || fn()); };
-    /** @hidden */
     var splitOnSlash = splitOnDelim('/');
-    /** @hidden */
     var defaultConfig = {
         state: { params: {} },
         strict: true,
         caseInsensitive: true,
+        decodeParams: true,
     };
     /**
      * Matches URLs against patterns.
@@ -4547,15 +4522,15 @@
          */
         function UrlMatcher(pattern, paramTypes, paramFactory, config) {
             var _this = this;
-            /** @hidden */
+            /** @internal */
             this._cache = { path: [this] };
-            /** @hidden */
+            /** @internal */
             this._children = [];
-            /** @hidden */
+            /** @internal */
             this._params = [];
-            /** @hidden */
+            /** @internal */
             this._segments = [];
-            /** @hidden */
+            /** @internal */
             this._compiled = [];
             this.config = config = defaults(config, defaultConfig);
             this.pattern = pattern;
@@ -4635,17 +4610,12 @@
             this._segments.push(segment);
             this._compiled = patterns.map(function (_pattern) { return quoteRegExp.apply(null, _pattern); }).concat(quoteRegExp(segment));
         }
-        /** @hidden */
+        /** @internal */
         UrlMatcher.encodeDashes = function (str) {
             // Replace dashes with encoded "\-"
-            return encodeURIComponent(str).replace(/-/g, function (c) {
-                return "%5C%" + c
-                    .charCodeAt(0)
-                    .toString(16)
-                    .toUpperCase();
-            });
+            return encodeURIComponent(str).replace(/-/g, function (c) { return "%5C%" + c.charCodeAt(0).toString(16).toUpperCase(); });
         };
-        /** @hidden Given a matcher, return an array with the matcher's path segments and path params, in order */
+        /** @internal Given a matcher, return an array with the matcher's path segments and path params, in order */
         UrlMatcher.pathSegmentsAndParams = function (matcher) {
             var staticSegments = matcher._segments;
             var pathParams = matcher._params.filter(function (p) { return p.location === exports.DefType.PATH; });
@@ -4653,7 +4623,7 @@
                 .reduce(unnestR, [])
                 .filter(function (x) { return x !== '' && isDefined(x); });
         };
-        /** @hidden Given a matcher, return an array with the matcher's query params */
+        /** @internal Given a matcher, return an array with the matcher's query params */
         UrlMatcher.queryParams = function (matcher) {
             return matcher._params.filter(function (p) { return p.location === exports.DefType.SEARCH; });
         };
@@ -4742,13 +4712,27 @@
             };
             return url;
         };
-        /** @hidden */
+        /** @internal */
         UrlMatcher.prototype.isRoot = function () {
             return this._cache.path[0] === this;
         };
         /** Returns the input pattern string */
         UrlMatcher.prototype.toString = function () {
             return this.pattern;
+        };
+        UrlMatcher.prototype._getDecodedParamValue = function (value, param) {
+            if (isDefined(value)) {
+                if (this.config.decodeParams && !param.type.raw) {
+                    if (isArray(value)) {
+                        value = value.map(function (paramValue) { return decodeURIComponent(paramValue); });
+                    }
+                    else {
+                        value = decodeURIComponent(value);
+                    }
+                }
+                value = param.type.decode(value);
+            }
+            return param.value(value);
         };
         /**
          * Tests the specified url/path against this matcher.
@@ -4794,12 +4778,7 @@
             if (nPathSegments !== match.length - 1)
                 throw new Error("Unbalanced capture group in route '" + this.pattern + "'");
             function decodePathArray(paramVal) {
-                var reverseString = function (str) {
-                    return str
-                        .split('')
-                        .reverse()
-                        .join('');
-                };
+                var reverseString = function (str) { return str.split('').reverse().join(''); };
                 var unquoteDashes = function (str) { return str.replace(/\\-/g, '-'); };
                 var split = reverseString(paramVal).split(/-(?!\\)/);
                 var allReversed = map(split, reverseString);
@@ -4815,9 +4794,7 @@
                 }
                 if (value && param.array === true)
                     value = decodePathArray(value);
-                if (isDefined(value))
-                    value = param.type.decode(value);
-                values[param.id] = param.value(value);
+                values[param.id] = this._getDecodedParamValue(value, param);
             }
             searchParams.forEach(function (param) {
                 var value = search[param.id];
@@ -4825,16 +4802,14 @@
                     if (param.replace[j].from === value)
                         value = param.replace[j].to;
                 }
-                if (isDefined(value))
-                    value = param.type.decode(value);
-                values[param.id] = param.value(value);
+                values[param.id] = _this._getDecodedParamValue(value, param);
             });
             if (hash)
                 values['#'] = hash;
             return values;
         };
         /**
-         * @hidden
+         * @internal
          * Returns all the [[Param]] objects of all path and search parameters of this pattern in order of appearance.
          *
          * @returns {Array.<Param>}  An array of [[Param]] objects. Must be treated as read-only. If the
@@ -4847,7 +4822,7 @@
             return unnest(this._cache.path.map(function (matcher) { return matcher._params; }));
         };
         /**
-         * @hidden
+         * @internal
          * Returns a single parameter from this UrlMatcher by id
          *
          * @param id
@@ -4978,7 +4953,7 @@
             // Concat the pathstring with the queryString (if exists) and the hashString (if exists)
             return pathString + (queryString ? "?" + queryString : '') + (values['#'] ? '#' + values['#'] : '');
         };
-        /** @hidden */
+        /** @internal */
         UrlMatcher.nameValidator = /^\w+([-.]+\w+)*(?:\[\])?$/;
         return UrlMatcher;
     }());
@@ -4994,7 +4969,6 @@
         };
         return __assign.apply(this, arguments);
     };
-    /** @internalapi */
     var ParamFactory = /** @class */ (function () {
         function ParamFactory(router) {
             this.router = router;
@@ -5015,16 +4989,17 @@
      *
      * The factory is available to ng1 services as
      * `$urlMatcherFactory` or ng1 providers as `$urlMatcherFactoryProvider`.
-     *
-     * @internalapi
      */
     var UrlMatcherFactory = /** @class */ (function () {
         // TODO: move implementations to UrlConfig (urlService.config)
-        function UrlMatcherFactory(/** @hidden */ router) {
+        function UrlMatcherFactory(/** @internal */ router) {
             var _this = this;
             this.router = router;
-            /** @internalapi Creates a new [[Param]] for a given location (DefType) */
+            /** Creates a new [[Param]] for a given location (DefType) */
             this.paramFactory = new ParamFactory(this.router);
+            // TODO: Check if removal of this will break anything, then remove these
+            this.UrlMatcher = UrlMatcher;
+            this.Param = Param;
             /** @deprecated use [[UrlConfig.caseInsensitive]] */
             this.caseInsensitive = function (value) { return _this.router.urlService.config.caseInsensitive(value); };
             /** @deprecated use [[UrlConfig.defaultSquashPolicy]] */
@@ -5035,7 +5010,6 @@
             this.type = function (name, definition, definitionFn) {
                 return _this.router.urlService.config.type(name, definition, definitionFn) || _this;
             };
-            extend(this, { UrlMatcher: UrlMatcher, Param: Param });
         }
         /**
          * Creates a [[UrlMatcher]] for the specified pattern.
@@ -5049,7 +5023,11 @@
             // backward-compatible support for config.params -> config.state.params
             var params = config && !config.state && config.params;
             config = params ? __assign({ state: { params: params } }, config) : config;
-            var globalConfig = { strict: urlConfig._isStrictMode, caseInsensitive: urlConfig._isCaseInsensitive };
+            var globalConfig = {
+                strict: urlConfig._isStrictMode,
+                caseInsensitive: urlConfig._isCaseInsensitive,
+                decodeParams: urlConfig._decodeParams,
+            };
             return new UrlMatcher(pattern, urlConfig.paramTypes, this.paramFactory, extend(globalConfig, config));
         };
         /**
@@ -5066,11 +5044,11 @@
             var result = true;
             forEach(UrlMatcher.prototype, function (val, name) {
                 if (isFunction(val))
-                    result = result && (isDefined(object[name]) && isFunction(object[name]));
+                    result = result && isDefined(object[name]) && isFunction(object[name]);
             });
             return result;
         };
-        /** @hidden */
+        /** @internal */
         UrlMatcherFactory.prototype.$get = function () {
             var urlConfig = this.router.urlService.config;
             urlConfig.paramTypes.enqueue = false;
@@ -5080,7 +5058,6 @@
         return UrlMatcherFactory;
     }());
 
-    /** @publicapi @module url */ /** */
     /**
      * Creates a [[UrlRule]]
      *
@@ -5090,7 +5067,6 @@
      * - [[UrlMatcher]]
      * - `RegExp`
      * - [[StateObject]]
-     * @internalapi
      */
     var UrlRuleFactory = /** @class */ (function () {
         function UrlRuleFactory(router) {
@@ -5101,11 +5077,11 @@
         };
         UrlRuleFactory.prototype.create = function (what, handler) {
             var _this = this;
-            var isState = StateObject.isState;
+            var isState = StateObject.isState, isStateDeclaration = StateObject.isStateDeclaration;
             var makeRule = pattern([
                 [isString, function (_what) { return makeRule(_this.compile(_what)); }],
                 [is(UrlMatcher), function (_what) { return _this.fromUrlMatcher(_what, handler); }],
-                [isState, function (_what) { return _this.fromState(_what, _this.router); }],
+                [or(isState, isStateDeclaration), function (_what) { return _this.fromState(_what, _this.router); }],
                 [is(RegExp), function (_what) { return _this.fromRegExp(_what, handler); }],
                 [isFunction, function (_what) { return new BaseUrlRule(_what, handler); }],
             ]);
@@ -5186,7 +5162,8 @@
          * // Starts a transition to 'foo' with params: { fooId: '123', barId: '456' }
          * ```
          */
-        UrlRuleFactory.prototype.fromState = function (state, router) {
+        UrlRuleFactory.prototype.fromState = function (stateOrDecl, router) {
+            var state = StateObject.isStateDeclaration(stateOrDecl) ? stateOrDecl.$$state() : stateOrDecl;
             /**
              * Handles match by transitioning to matched state
              *
@@ -5260,7 +5237,7 @@
      * A base rule which calls `match`
      *
      * The value from the `match` function is passed through to the `handler`.
-     * @internalapi
+     * @internal
      */
     var BaseUrlRule = /** @class */ (function () {
         function BaseUrlRule(match, handler) {
@@ -5273,8 +5250,6 @@
         return BaseUrlRule;
     }());
 
-    /** @publicapi @module url */ /** */
-    /** @hidden */
     function appendBasePath(url, isHtml5, absolute, baseHref) {
         if (baseHref === '/')
             return url;
@@ -5291,12 +5266,10 @@
      * This class is now considered to be an internal API
      * Use the [[UrlService]] instead.
      * For configuring URL rules, use the [[UrlRules]] which can be found as [[UrlService.rules]].
-     *
-     * @internalapi
      */
     var UrlRouter = /** @class */ (function () {
-        /** @hidden */
-        function UrlRouter(/** @hidden */ router) {
+        /** @internal */
+        function UrlRouter(/** @internal */ router) {
             var _this = this;
             this.router = router;
             // Delegate these calls to [[UrlService]]
@@ -5329,10 +5302,7 @@
             this.when = function (matcher, handler, options) { return _this.router.urlService.rules.when(matcher, handler, options); };
             this.urlRuleFactory = new UrlRuleFactory(router);
         }
-        /**
-         * Internal API.
-         * @internalapi
-         */
+        /** Internal API. */
         UrlRouter.prototype.update = function (read) {
             var $url = this.router.locationService;
             if (read) {
@@ -5348,7 +5318,7 @@
          *
          * Pushes a new location to the browser history.
          *
-         * @internalapi
+         * @internal
          * @param urlMatcher
          * @param params
          * @param options
@@ -5400,13 +5370,12 @@
             get: function () {
                 return this.router.urlService.interceptDeferred;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         return UrlRouter;
     }());
 
-    /** @publicapi @module view */ /** */
     /**
      * The View service
      *
@@ -5424,15 +5393,15 @@
      *
      */
     var ViewService = /** @class */ (function () {
-        /** @hidden */
-        function ViewService(/** @hidden */ router) {
+        /** @internal */
+        function ViewService(/** @internal */ router) {
             var _this = this;
             this.router = router;
-            /** @hidden */ this._uiViews = [];
-            /** @hidden */ this._viewConfigs = [];
-            /** @hidden */ this._viewConfigFactories = {};
-            /** @hidden */ this._listeners = [];
-            /** @internalapi */
+            /** @internal */ this._uiViews = [];
+            /** @internal */ this._viewConfigs = [];
+            /** @internal */ this._viewConfigFactories = {};
+            /** @internal */ this._listeners = [];
+            /** @internal */
             this._pluginapi = {
                 _rootViewContext: this._rootViewContext.bind(this),
                 _viewConfigFactory: this._viewConfigFactory.bind(this),
@@ -5487,11 +5456,11 @@
             }
             return { uiViewName: uiViewName, uiViewContextAnchor: uiViewContextAnchor };
         };
-        /** @hidden */
+        /** @internal */
         ViewService.prototype._rootViewContext = function (context) {
             return (this._rootContext = context || this._rootContext);
         };
-        /** @hidden */
+        /** @internal */
         ViewService.prototype._viewConfigFactory = function (viewType, factory) {
             this._viewConfigFactories[viewType] = factory;
         };
@@ -5668,7 +5637,7 @@
          * - And the remaining segments [ "$default", "bar" ].join("."_ of the ViewConfig's target name match
          *   the tail of the ui-view's fqn "default.bar"
          *
-         * @internalapi
+         * @internal
          */
         ViewService.matches = function (uiViewsByFqn, uiView) { return function (viewConfig) {
             // Don't supply an ng1 ui-view with an ng2 ViewConfig, etc
@@ -5692,7 +5661,6 @@
         return ViewService;
     }());
 
-    /** @publicapi @module core */ /** */
     /**
      * Global router state
      *
@@ -5707,11 +5675,11 @@
              * The parameter values from the latest successful transition
              */
             this.params = new StateParams();
-            /** @internalapi */
+            /** @internal */
             this.lastStartedTransitionId = -1;
-            /** @internalapi */
+            /** @internal */
             this.transitionHistory = new Queue([], 1);
-            /** @internalapi */
+            /** @internal */
             this.successfulTransitions = new Queue([], 1);
         }
         UIRouterGlobals.prototype.dispose = function () {
@@ -5722,18 +5690,14 @@
         return UIRouterGlobals;
     }());
 
-    /** @hidden */
     var prioritySort = function (a, b) { return (b.priority || 0) - (a.priority || 0); };
-    /** @hidden */
     var typeSort = function (a, b) {
         var weights = { STATE: 4, URLMATCHER: 4, REGEXP: 3, RAW: 2, OTHER: 1 };
         return (weights[a.type] || 0) - (weights[b.type] || 0);
     };
-    /** @hidden */
     var urlMatcherSort = function (a, b) {
         return !a.urlMatcher || !b.urlMatcher ? 0 : UrlMatcher.compare(a.urlMatcher, b.urlMatcher);
     };
-    /** @hidden */
     var idSort = function (a, b) {
         // Identically sorted STATE and URLMATCHER best rule will be chosen by `matchPriority` after each rule matches the URL
         var useMatchPriority = { STATE: true, URLMATCHER: true };
@@ -5751,8 +5715,6 @@
      * - Rule registration order (for rule types other than STATE and URLMATCHER)
      *   - Equally sorted State and UrlMatcher rules will each match the URL.
      *     Then, the *best* match is chosen based on how many parameter values were matched.
-     *
-     * @publicapi
      */
     var defaultRuleSortFn;
     defaultRuleSortFn = function (a, b) {
@@ -5767,7 +5729,6 @@
             return cmp;
         return idSort(a, b);
     };
-    /** @hidden */
     function getHandlerFn(handler) {
         if (!isFunction(handler) && !isString(handler) && !is(TargetState)(handler) && !TargetState.isDef(handler)) {
             throw new Error("'handler' must be a string, function, TargetState, or have a state: 'newtarget' property");
@@ -5782,20 +5743,18 @@
      *
      * The most commonly used methods are [[otherwise]] and [[when]].
      *
-     * This API is a property of [[UrlService]] as [[UrlService.rules]]
-     *
-     * @publicapi
+     * This API is found at `router.urlService.rules` (see: [[UIRouter.urlService]], [[URLService.rules]])
      */
     var UrlRules = /** @class */ (function () {
-        /** @hidden */
-        function UrlRules(/** @hidden */ router) {
+        /** @internal */
+        function UrlRules(/** @internal */ router) {
             this.router = router;
-            /** @hidden */ this._sortFn = defaultRuleSortFn;
-            /** @hidden */ this._rules = [];
-            /** @hidden */ this._id = 0;
+            /** @internal */ this._sortFn = defaultRuleSortFn;
+            /** @internal */ this._rules = [];
+            /** @internal */ this._id = 0;
             this.urlRuleFactory = new UrlRuleFactory(router);
         }
-        /** @hidden */
+        /** @internal */
         UrlRules.prototype.dispose = function (router) {
             this._rules = [];
             delete this._otherwiseFn;
@@ -5984,11 +5943,11 @@
             this._rules = sorted;
             this._sorted = true;
         };
-        /** @hidden */
+        /** @internal */
         UrlRules.prototype.ensureSorted = function () {
             this._sorted || this.sort();
         };
-        /** @hidden */
+        /** @internal */
         UrlRules.prototype.stableSort = function (arr, compareFn) {
             var arrOfWrapper = arr.map(function (elem, idx) { return ({ elem: elem, idx: idx }); });
             arrOfWrapper.sort(function (wrapperA, wrapperB) {
@@ -6077,17 +6036,18 @@
      * This information can be used to build absolute URLs, such as
      * `https://example.com:443/basepath/state/substate?param1=a#hashvalue`;
      *
-     * This API is a property of [[UrlService]] as [[UrlService.config]].
+     * This API is found at `router.urlService.config` (see: [[UIRouter.urlService]], [[URLService.config]])
      */
     var UrlConfig = /** @class */ (function () {
-        /** @hidden */ function UrlConfig(/** @hidden */ router) {
+        /** @internal */ function UrlConfig(/** @internal */ router) {
             var _this = this;
             this.router = router;
-            /** @hidden */ this.paramTypes = new ParamTypes();
-            /** @hidden */ this._isCaseInsensitive = false;
-            /** @hidden */ this._isStrictMode = true;
-            /** @hidden */ this._defaultSquashPolicy = false;
-            /** @internalapi */ this.dispose = function () { return _this.paramTypes.dispose(); };
+            /** @internal */ this.paramTypes = new ParamTypes();
+            /** @internal */ this._decodeParams = true;
+            /** @internal */ this._isCaseInsensitive = false;
+            /** @internal */ this._isStrictMode = true;
+            /** @internal */ this._defaultSquashPolicy = false;
+            /** @internal */ this.dispose = function () { return _this.paramTypes.dispose(); };
             // Delegate these calls to the current LocationConfig implementation
             /**
              * Gets the base Href, e.g., `http://localhost/approot/`
@@ -6219,13 +6179,15 @@
         return UrlConfig;
     }());
 
-    /** API for URL management */
+    /**
+     * API for URL management
+     */
     var UrlService = /** @class */ (function () {
-        /** @hidden */
-        function UrlService(/** @hidden */ router) {
+        /** @internal */
+        function UrlService(/** @internal */ router) {
             var _this = this;
             this.router = router;
-            /** @hidden */ this.interceptDeferred = false;
+            /** @internal */ this.interceptDeferred = false;
             /**
              * The nested [[UrlRules]] API for managing URL rules and rewrites
              *
@@ -6319,7 +6281,7 @@
              */
             this.hash = function () { return _this.router.locationService.hash(); };
             /**
-             * @internalapi
+             * @internal
              *
              * Registers a low level url change handler
              *
@@ -6335,7 +6297,7 @@
              */
             this.onChange = function (callback) { return _this.router.locationService.onChange(callback); };
         }
-        /** @hidden */
+        /** @internal */
         UrlService.prototype.dispose = function () {
             this.listen(false);
             this.rules.dispose();
@@ -6410,7 +6372,8 @@
                 delete this._stopListeningFn;
             }
             else {
-                return (this._stopListeningFn = this._stopListeningFn || this.router.urlService.onChange(function (evt) { return _this.sync(evt); }));
+                return (this._stopListeningFn =
+                    this._stopListeningFn || this.router.urlService.onChange(function (evt) { return _this.sync(evt); }));
             }
         };
         /**
@@ -6475,31 +6438,20 @@
         return UrlService;
     }());
 
-    /** @publicapi @module core */ /** */
-    /** @hidden */
+    /** @internal */
     var _routerInstance = 0;
-    /** @hidden */
+    /** @internal */
     var locSvcFns = ['url', 'path', 'search', 'hash', 'onChange'];
-    /** @hidden */
+    /** @internal */
     var locCfgFns = ['port', 'protocol', 'host', 'baseHref', 'html5Mode', 'hashPrefix'];
-    /** @hidden */
+    /** @internal */
     var locationServiceStub = makeStub('LocationServices', locSvcFns);
-    /** @hidden */
+    /** @internal */
     var locationConfigStub = makeStub('LocationConfig', locCfgFns);
     /**
-     * The master class used to instantiate an instance of UI-Router.
+     * An instance of UI-Router.
      *
-     * UI-Router (for each specific framework) will create an instance of this class during bootstrap.
-     * This class instantiates and wires the UI-Router services together.
-     *
-     * After a new instance of the UIRouter class is created, it should be configured for your app.
-     * For instance, app states should be registered with the [[UIRouter.stateRegistry]].
-     *
-     * ---
-     *
-     * Normally the framework code will bootstrap UI-Router.
-     * If you are bootstrapping UIRouter manually, tell it to monitor the URL by calling
-     * [[UrlService.listen]] then [[UrlService.sync]].
+     * This object contains references to service APIs which define your application's routing behavior.
      */
     var UIRouter = /** @class */ (function () {
         /**
@@ -6507,23 +6459,23 @@
          *
          * @param locationService a [[LocationServices]] implementation
          * @param locationConfig a [[LocationConfig]] implementation
-         * @internalapi
+         * @internal
          */
         function UIRouter(locationService, locationConfig) {
             if (locationService === void 0) { locationService = locationServiceStub; }
             if (locationConfig === void 0) { locationConfig = locationConfigStub; }
             this.locationService = locationService;
             this.locationConfig = locationConfig;
-            /** @hidden */ this.$id = _routerInstance++;
-            /** @hidden */ this._disposed = false;
-            /** @hidden */ this._disposables = [];
-            /** Provides trace information to the console */
+            /** @internal */ this.$id = _routerInstance++;
+            /** @internal */ this._disposed = false;
+            /** @internal */ this._disposables = [];
+            /** Enable/disable tracing to the javascript console */
             this.trace = trace;
             /** Provides services related to ui-view synchronization */
             this.viewService = new ViewService(this);
-            /** Global router state */
+            /** An object that contains global router state, such as the current state and params */
             this.globals = new UIRouterGlobals();
-            /** Provides services related to Transitions */
+            /** A service that exposes global Transition Hooks */
             this.transitionService = new TransitionService(this);
             /**
              * Deprecated for public use. Use [[urlService]] instead.
@@ -6541,7 +6493,7 @@
             this.stateRegistry = new StateRegistry(this);
             /** Provides services related to states */
             this.stateService = new StateService(this);
-            /** @hidden plugin instances are registered here */
+            /** @internal plugin instances are registered here */
             this._plugins = {};
             this.viewService._pluginapi._rootViewContext(this.stateRegistry.root());
             this.globals.$current = this.stateRegistry.root();
@@ -6566,6 +6518,7 @@
          *
          * Or, if a `disposable` object is provided, calls `dispose(this)` on that object only.
          *
+         * @internal
          * @param disposable (optional) the disposable to dispose
          */
         UIRouter.prototype.dispose = function (disposable) {
@@ -6650,7 +6603,6 @@
         return UIRouter;
     }());
 
-    /** @internalapi @module hooks */ /** */
     function addCoreResolvables(trans) {
         trans.addResolvable(Resolvable.fromData(UIRouter, trans.router), '');
         trans.addResolvable(Resolvable.fromData(Transition, trans), '');
@@ -6670,9 +6622,7 @@
     // This function removes resolves for '$transition$' and `Transition` from the treeChanges.
     // Do not use this on current transitions, only on old ones.
     var treeChangesCleanup = function (trans) {
-        var nodes = values(trans.treeChanges())
-            .reduce(unnestR, [])
-            .reduce(uniqR, []);
+        var nodes = values(trans.treeChanges()).reduce(unnestR, []).reduce(uniqR, []);
         // If the resolvable is a Transition, return a new resolvable with null data
         var replaceTransitionWithNull = function (r) {
             return isTransition(r.token) ? Resolvable.fromData(r.token, null) : r;
@@ -6682,7 +6632,6 @@
         });
     };
 
-    /** @internalapi @module hooks */ /** */
     /**
      * A [[TransitionHookFn]] that redirects to a different state or params
      *
@@ -6719,8 +6668,6 @@
      *
      * The returned function invokes the (for instance) state.onEnter hook when the
      * state is being entered.
-     *
-     * @hidden
      */
     function makeEnterExitRetainHook(hookName) {
         return function (transition, state) {
@@ -6769,7 +6716,6 @@
         return transitionService.onEnter({ entering: function (state) { return !!state.onEnter; } }, onEnterHook);
     };
 
-    /** @internalapi @module hooks */ /** */
     var RESOLVE_HOOK_PRIORITY = 1000;
     /**
      * A [[TransitionHookFn]] which resolves all EAGER Resolvables in the To Path
@@ -6796,10 +6742,7 @@
      * See [[StateDeclaration.resolve]]
      */
     var lazyResolveState = function (trans, state) {
-        return new ResolveContext(trans.treeChanges().to)
-            .subContext(state.$$state())
-            .resolvePath('LAZY', trans)
-            .then(noop);
+        return new ResolveContext(trans.treeChanges().to).subContext(state.$$state()).resolvePath('LAZY', trans).then(noop);
     };
     var registerLazyResolveState = function (transitionService) {
         return transitionService.onEnter({ entering: val(true) }, lazyResolveState, { priority: RESOLVE_HOOK_PRIORITY });
@@ -6821,7 +6764,6 @@
         return transitionService.onFinish({}, resolveRemaining, { priority: RESOLVE_HOOK_PRIORITY });
     };
 
-    /** @internalapi @module hooks */ /** */
     /**
      * A [[TransitionHookFn]] which waits for the views to load
      *
@@ -6937,7 +6879,7 @@
      * ```
      * .state('abc', {
      *   component: 'fooComponent',
-     *   lazyLoad: () => System.import('./fooComponent')
+     *   lazyLoad: () => import('./fooComponent')
      *   });
      * ```
      *
@@ -7016,8 +6958,6 @@
     /**
      * This class defines a type of hook, such as `onBefore` or `onEnter`.
      * Plugins can define custom hook types, such as sticky states does for `onInactive`.
-     *
-     * @interalapi
      */
     var TransitionEventType = /** @class */ (function () {
         /* tslint:disable:no-inferrable-types */
@@ -7038,7 +6978,6 @@
         return TransitionEventType;
     }());
 
-    /** @internalapi @module hooks */ /** */
     /**
      * A [[TransitionHookFn]] that skips a transition if it should be ignored
      *
@@ -7065,7 +7004,6 @@
         return transitionService.onBefore({}, ignoredHook, { priority: -9999 });
     };
 
-    /** @internalapi @module hooks */ /** */
     /**
      * A [[TransitionHookFn]] that rejects the Transition if it is invalid
      *
@@ -7082,7 +7020,6 @@
         return transitionService.onBefore({}, invalidTransitionHook, { priority: -10000 });
     };
 
-    /** @publicapi @module transition */ /** */
     /**
      * The default [[Transition]] options.
      *
@@ -7096,6 +7033,7 @@
         inherit: false,
         notify: true,
         reload: false,
+        supercede: true,
         custom: {},
         current: function () { return null; },
         source: 'unknown',
@@ -7108,17 +7046,19 @@
      * - It also has a factory function for creating new [[Transition]] objects, (used internally by the [[StateService]]).
      *
      * At bootstrap, [[UIRouter]] creates a single instance (singleton) of this class.
+     *
+     * This API is located at `router.transitionService` ([[UIRouter.transitionService]])
      */
     var TransitionService = /** @class */ (function () {
-        /** @hidden */
+        /** @internal */
         function TransitionService(_router) {
-            /** @hidden */
+            /** @internal */
             this._transitionCount = 0;
-            /** @hidden The transition hook types, such as `onEnter`, `onStart`, etc */
+            /** The transition hook types, such as `onEnter`, `onStart`, etc */
             this._eventTypes = [];
-            /** @hidden The registered transition hooks */
+            /** @internal The registered transition hooks */
             this._registeredHooks = {};
-            /** @hidden The  paths on a criteria object */
+            /** The  paths on a criteria object */
             this._criteriaPaths = {};
             this._router = _router;
             this.$view = _router.viewService;
@@ -7152,7 +7092,7 @@
          *
          * The hook's return value is ignored
          *
-         * @internalapi
+         * @internal
          * @param criteria defines which Transitions the Hook should be invoked for.
          * @param callback the hook function which will be invoked.
          * @param options the registration options
@@ -7195,7 +7135,7 @@
         };
         /**
          * dispose
-         * @internalapi
+         * @internal
          */
         TransitionService.prototype.dispose = function (router) {
             values(this._registeredHooks).forEach(function (hooksArray) {
@@ -7211,6 +7151,7 @@
          * This is a factory function for creating new Transition objects.
          * It is used internally by the [[StateService]] and should generally not be called by application code.
          *
+         * @internal
          * @param fromPath the path to the current state (the from state)
          * @param targetState the target state (destination)
          * @returns a Transition
@@ -7218,7 +7159,7 @@
         TransitionService.prototype.create = function (fromPath, targetState) {
             return new Transition(fromPath, targetState, this._router);
         };
-        /** @hidden */
+        /** @internal */
         TransitionService.prototype._defineCoreEvents = function () {
             var Phase = exports.TransitionHookPhase;
             var TH = TransitionHook;
@@ -7235,7 +7176,7 @@
             this._defineEvent('onSuccess', Phase.SUCCESS, 0, paths.to, NORMAL_SORT, TH.LOG_REJECTED_RESULT, TH.LOG_ERROR, SYNCHRONOUS);
             this._defineEvent('onError', Phase.ERROR, 0, paths.to, NORMAL_SORT, TH.LOG_REJECTED_RESULT, TH.LOG_ERROR, SYNCHRONOUS);
         };
-        /** @hidden */
+        /** @internal */
         TransitionService.prototype._defineCorePaths = function () {
             var STATE = exports.TransitionHookScope.STATE, TRANSITION = exports.TransitionHookScope.TRANSITION;
             this._definePathType('to', TRANSITION);
@@ -7244,7 +7185,7 @@
             this._definePathType('retained', STATE);
             this._definePathType('entering', STATE);
         };
-        /** @hidden */
+        /** @internal */
         TransitionService.prototype._defineEvent = function (name, hookPhase, hookOrder, criteriaMatchPath, reverseSort, getResultHandler, getErrorHandler, synchronous) {
             if (reverseSort === void 0) { reverseSort = false; }
             if (getResultHandler === void 0) { getResultHandler = TransitionHook.HANDLE_RESULT; }
@@ -7254,8 +7195,7 @@
             this._eventTypes.push(eventType);
             makeEvent(this, this, eventType);
         };
-        /** @hidden */
-        // tslint:disable-next-line
+        /** @internal */
         TransitionService.prototype._getEvents = function (phase) {
             var transitionHookTypes = isDefined(phase)
                 ? this._eventTypes.filter(function (type) { return type.hookPhase === phase; })
@@ -7276,21 +7216,21 @@
          * It was defined by calling `defineTreeChangesCriterion('to', TransitionHookScope.TRANSITION)`
          * Only the tail of the `to` path is checked against the criteria and returned as part of the match.
          *
-         * @hidden
+         * @internal
          */
         TransitionService.prototype._definePathType = function (name, hookScope) {
             this._criteriaPaths[name] = { name: name, scope: hookScope };
         };
-        /** * @hidden */
+        /** @internal */
         // tslint:disable-next-line
         TransitionService.prototype._getPathTypes = function () {
             return this._criteriaPaths;
         };
-        /** @hidden */
+        /** @internal */
         TransitionService.prototype.getHooks = function (hookName) {
             return this._registeredHooks[hookName];
         };
-        /** @hidden */
+        /** @internal */
         TransitionService.prototype._registerCoreTransitionHooks = function () {
             var fns = this._deregisterHookFns;
             fns.addCoreResolves = registerAddCoreResolvables(this);
@@ -7319,20 +7259,18 @@
         return TransitionService;
     }());
 
-    /** @publicapi @module state */ /** */
     /**
-     * Provides state related service functions
+     * Provides services related to ui-router states.
      *
-     * This class provides services related to ui-router states.
-     * An instance of this class is located on the global [[UIRouter]] object.
+     * This API is located at `router.stateService` ([[UIRouter.stateService]])
      */
     var StateService = /** @class */ (function () {
-        /** @internalapi */
-        function StateService(/** @hidden */ router) {
+        /** @internal */
+        function StateService(/** @internal */ router) {
             this.router = router;
-            /** @internalapi */
+            /** @internal */
             this.invalidCallbacks = [];
-            /** @hidden */
+            /** @internal */
             this._defaultErrorHandler = function $defaultErrorHandler($error$) {
                 if ($error$ instanceof Error && $error$.stack) {
                     console.error($error$);
@@ -7355,51 +7293,51 @@
             /**
              * The [[Transition]] currently in progress (or null)
              *
-             * This is a passthrough through to [[UIRouterGlobals.transition]]
+             * @deprecated This is a passthrough through to [[UIRouterGlobals.transition]]
              */
             get: function () {
                 return this.router.globals.transition;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Object.defineProperty(StateService.prototype, "params", {
             /**
              * The latest successful state parameters
              *
-             * This is a passthrough through to [[UIRouterGlobals.params]]
+             * @deprecated This is a passthrough through to [[UIRouterGlobals.params]]
              */
             get: function () {
                 return this.router.globals.params;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Object.defineProperty(StateService.prototype, "current", {
             /**
              * The current [[StateDeclaration]]
              *
-             * This is a passthrough through to [[UIRouterGlobals.current]]
+             * @deprecated This is a passthrough through to [[UIRouterGlobals.current]]
              */
             get: function () {
                 return this.router.globals.current;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Object.defineProperty(StateService.prototype, "$current", {
             /**
-             * The current [[StateObject]]
+             * The current [[StateObject]] (an internal API)
              *
-             * This is a passthrough through to [[UIRouterGlobals.$current]]
+             * @deprecated This is a passthrough through to [[UIRouterGlobals.$current]]
              */
             get: function () {
                 return this.router.globals.$current;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
-        /** @internalapi */
+        /** @internal */
         StateService.prototype.dispose = function () {
             this.defaultErrorHandler(noop);
             this.invalidCallbacks = [];
@@ -7413,7 +7351,7 @@
          *
          * If a callback returns an TargetState, then it is used as arguments to $state.transitionTo() and the result returned.
          *
-         * @internalapi
+         * @internal
          */
         StateService.prototype._handleInvalidTargetState = function (fromPath, toState) {
             var _this = this;
@@ -7592,6 +7530,7 @@
                 throw new Error("No such reload state '" + (isString(options.reload) ? options.reload : options.reload.name) + "'");
             return new TargetState(this.router.stateRegistry, identifier, params, options);
         };
+        /** @internal */
         StateService.prototype.getCurrentPath = function () {
             var _this = this;
             var globals = this.router.globals;
@@ -7637,6 +7576,9 @@
                 return this._handleInvalidTargetState(currentPath, ref);
             if (!ref.valid())
                 return silentRejection(ref.error());
+            if (options.supercede === false && getCurrent()) {
+                return (Rejection.ignored('Another transition is in progress and supercede has been set to false in TransitionOptions for the transition. So the transition was ignored in favour of the existing one in progress.').toPromise());
+            }
             /**
              * Special handling for Ignored, Aborted, and Redirected transitions
              *
@@ -7869,20 +7811,6 @@
     }());
 
     /**
-     * # Transition subsystem
-     *
-     * This module contains APIs related to a Transition.
-     *
-     * See:
-     * - [[TransitionService]]
-     * - [[Transition]]
-     * - [[HookFn]], [[TransitionHookFn]], [[TransitionStateHookFn]], [[HookMatchCriteria]], [[HookResult]]
-     *
-     * @preferred @publicapi @module transition
-     */ /** */
-
-    /** @internalapi @module vanilla */ /** */
-    /**
      * An angular1-like promise api
      *
      * This object implements four methods similar to the
@@ -7935,7 +7863,6 @@
         },
     };
 
-    /** @internalapi @module vanilla */ /** */
     // globally available injectables
     var globals = {};
     var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/gm;
@@ -8028,7 +7955,6 @@
         },
     };
 
-    /** @internalapi @module vanilla */ /** */
     var keyValsToObjectR = function (accum, _a) {
         var key = _a[0], val = _a[1];
         if (!accum.hasOwnProperty(key)) {
@@ -8043,11 +7969,7 @@
         return accum;
     };
     var getParams = function (queryString) {
-        return queryString
-            .split('&')
-            .filter(identity)
-            .map(splitEqual)
-            .reduce(keyValsToObjectR, {});
+        return queryString.split('&').filter(identity).map(splitEqual).reduce(keyValsToObjectR, {});
     };
     function parseUrl$1(url) {
         var orEmptyString = function (x) { return x || ''; };
@@ -8081,7 +8003,6 @@
         };
     }
 
-    /** @internalapi @module vanilla */ /** */
     /** A base `LocationServices` */
     var BaseLocationServices = /** @class */ (function () {
         function BaseLocationServices(router, fireAfterUpdate) {
@@ -8271,7 +8192,6 @@
         return MemoryLocationConfig;
     }());
 
-    /** @internalapi @module vanilla */
     /** A `LocationConfig` that delegates to the browser's `location` object */
     var BrowserLocationConfig = /** @class */ (function () {
         function BrowserLocationConfig(router, _isHtml5) {
@@ -8316,7 +8236,6 @@
         return BrowserLocationConfig;
     }());
 
-    /** @internalapi @module vanilla */ /** */
     function servicesPlugin(router) {
         services.$injector = $injector;
         services.$q = $q;
@@ -8329,17 +8248,6 @@
     /** A `UIRouterPlugin` that gets/sets the current location from an in-memory object */
     var memoryLocationPlugin = locationPluginFactory('vanilla.memoryLocation', false, MemoryLocationService, MemoryLocationConfig);
 
-    /** @internalapi @module vanilla */ /** */
-
-    /**
-     * # Core classes and interfaces
-     *
-     * The classes and interfaces that are core to ui-router and do not belong
-     * to a more specific subsystem (such as resolve).
-     *
-     * @preferred @publicapi @module core
-     */ /** */
-    /** @internalapi */
     var UIRouterPluginBase = /** @class */ (function () {
         function UIRouterPluginBase() {
         }
@@ -8347,9 +8255,8 @@
         return UIRouterPluginBase;
     }());
 
-    /** @publicapi @module common */ /** */
-
     var index = /*#__PURE__*/Object.freeze({
+        __proto__: null,
         root: root,
         fromJson: fromJson,
         toJson: toJson,
@@ -8513,6 +8420,7 @@
         UIRouterPluginBase: UIRouterPluginBase
     });
 
+    /** @publicapi @module ng1 */ /** */
     /** @internalapi */
     function getNg1ViewConfigFactory() {
         var templateFactory = null;
@@ -8787,9 +8695,7 @@
                 // some-attr="::$resolve.someResolveName"
                 return attrName + "='" + prefix + "$resolve." + resolveName + "'";
             };
-            var attrs = getComponentBindings(component)
-                .map(attributeTpl)
-                .join(' ');
+            var attrs = getComponentBindings(component).map(attributeTpl).join(' ');
             var kebobName = kebob(component);
             return "<" + kebobName + " " + attrs + "></" + kebobName + ">";
         };
@@ -8968,7 +8874,7 @@
      * @internalapi
      */
     var getStateHookBuilder = function (hookName) {
-        return function stateHookBuilder(stateObject, parentFn) {
+        return function stateHookBuilder(stateObject) {
             var hook = stateObject[hookName];
             var pathname = hookName === 'onExit' ? 'from' : 'to';
             function decoratedNg1Hook(trans, state) {
@@ -9015,6 +8921,7 @@
                 return x != null ? x.toString().replace(/(~~|~2F)/g, function (m) { return ({ '~~': '~', '~2F': '/' }[m]); }) : x;
             };
         };
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         Ng1LocationServices.prototype.dispose = function () { };
         Ng1LocationServices.prototype.onChange = function (callback) {
             var _this = this;
@@ -9249,23 +9156,14 @@
         return UrlRouterProvider;
     }());
 
-    /**
-     * # Angular 1 types
-     *
-     * UI-Router core provides various Typescript types which you can use for code completion and validating parameter values, etc.
-     * The customizations to the core types for Angular UI-Router are documented here.
-     *
-     * The optional [[$resolve]] service is also documented here.
-     *
-     * @preferred @publicapi @module ng1
-     */ /** */
+    /* eslint-disable @typescript-eslint/no-empty-function */
     ng.module('ui.router.angular1', []);
     var mod_init = ng.module('ui.router.init', ['ng']);
     var mod_util = ng.module('ui.router.util', ['ui.router.init']);
     var mod_rtr = ng.module('ui.router.router', ['ui.router.util']);
     var mod_state = ng.module('ui.router.state', ['ui.router.router', 'ui.router.util', 'ui.router.angular1']);
     var mod_main = ng.module('ui.router', ['ui.router.init', 'ui.router.state', 'ui.router.angular1']);
-    var mod_cmpt = ng.module('ui.router.compat', ['ui.router']); // tslint:disable-line
+    var mod_cmpt = ng.module('ui.router.compat', ['ui.router']);
     var router = null;
     $uiRouterProvider.$inject = ['$locationProvider'];
     /** This angular 1 provider instantiates a Router and exposes its services via the angular injector */
@@ -9279,6 +9177,8 @@
         router.stateRegistry.decorator('onRetain', getStateHookBuilder('onRetain'));
         router.stateRegistry.decorator('onEnter', getStateHookBuilder('onEnter'));
         router.viewService._pluginapi._viewConfigFactory('ng1', getNg1ViewConfigFactory());
+        // Disable decoding of params by UrlMatcherFactory because $location already handles this
+        router.urlService.config._decodeParams = false;
         var ng1LocationService = (router.locationService = router.locationConfig = new Ng1LocationServices($locationProvider));
         Ng1LocationServices.monkeyPatchPathParameterType(router);
         // backwards compat: also expose router instance as $uiRouterProvider.router
@@ -9307,7 +9207,7 @@
         services.$injector = $injector;
         services.$q = $q;
         // https://github.com/angular-ui/ui-router/issues/3678
-        if (!$injector.hasOwnProperty('strictDi')) {
+        if (!Object.prototype.hasOwnProperty.call($injector, 'strictDi')) {
             try {
                 $injector.invoke(function (checkStrictDi) { });
             }
@@ -9363,83 +9263,13 @@
         return tuples.reduce(applyPairs, {});
     };
 
-    /**
-     * The current (or pending) State Parameters
-     *
-     * An injectable global **Service Object** which holds the state parameters for the latest **SUCCESSFUL** transition.
-     *
-     * The values are not updated until *after* a `Transition` successfully completes.
-     *
-     * **Also:** an injectable **Per-Transition Object** object which holds the pending state parameters for the pending `Transition` currently running.
-     *
-     * ### Deprecation warning:
-     *
-     * The value injected for `$stateParams` is different depending on where it is injected.
-     *
-     * - When injected into an angular service, the object injected is the global **Service Object** with the parameter values for the latest successful `Transition`.
-     * - When injected into transition hooks, resolves, or view controllers, the object is the **Per-Transition Object** with the parameter values for the running `Transition`.
-     *
-     * Because of these confusing details, this service is deprecated.
-     *
-     * ### Instead of using the global `$stateParams` service object,
-     * inject [[$uiRouterGlobals]] and use [[UIRouterGlobals.params]]
-     *
-     * ```js
-     * MyService.$inject = ['$uiRouterGlobals'];
-     * function MyService($uiRouterGlobals) {
-     *   return {
-     *     paramValues: function () {
-     *       return $uiRouterGlobals.params;
-     *     }
-     *   }
-     * }
-     * ```
-     *
-     * ### Instead of using the per-transition `$stateParams` object,
-     * inject the current `Transition` (as [[$transition$]]) and use [[Transition.params]]
-     *
-     * ```js
-     * MyController.$inject = ['$transition$'];
-     * function MyController($transition$) {
-     *   var username = $transition$.params().username;
-     *   // .. do something with username
-     * }
-     * ```
-     *
-     * ---
-     *
-     * This object can be injected into other services.
-     *
-     * #### Deprecated Example:
-     * ```js
-     * SomeService.$inject = ['$http', '$stateParams'];
-     * function SomeService($http, $stateParams) {
-     *   return {
-     *     getUser: function() {
-     *       return $http.get('/api/users/' + $stateParams.username);
-     *     }
-     *   }
-     * };
-     * angular.service('SomeService', SomeService);
-     * ```
-     * @deprecated
-     */
-
-    /**
-     * # Angular 1 Directives
-     *
-     * These are the directives included in UI-Router for Angular 1.
-     * These directives are used in templates to create viewports and link/navigate to states.
-     *
-     * @preferred @publicapi @module directives
-     */ /** */
+    /* eslint-disable @typescript-eslint/no-empty-interface */
     /** @hidden */
     function parseStateRef(ref) {
-        var parsed;
         var paramsOnly = ref.match(/^\s*({[^}]*})\s*$/);
         if (paramsOnly)
             ref = '(' + paramsOnly[1] + ')';
-        parsed = ref.replace(/\n/g, ' ').match(/^\s*([^(]*?)\s*(\((.*)\))?\s*$/);
+        var parsed = ref.replace(/\n/g, ' ').match(/^\s*([^(]*?)\s*(\((.*)\))?\s*$/);
         if (!parsed || parsed.length !== 4)
             throw new Error("Invalid state ref '" + ref + "'");
         return { state: parsed[1] || null, paramExpr: parsed[3] || null };
@@ -9472,7 +9302,7 @@
     function clickHook(el, $state, $timeout, type, getDef) {
         return function (e) {
             var button = e.which || e.button, target = getDef();
-            if (!(button > 1 || e.ctrlKey || e.metaKey || e.shiftKey || el.attr('target'))) {
+            if (!(button > 1 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || el.attr('target'))) {
                 // HACK: This is to allow ng-clicks to be processed before the transition is initiated:
                 var transition_1 = $timeout(function () {
                     if (!el.attr('disabled')) {
@@ -9665,7 +9495,6 @@
                     var type = getTypeInfo(element);
                     var active = uiSrefActive[1] || uiSrefActive[0];
                     var unlinkInfoFn = null;
-                    var hookFn;
                     var rawDef = {};
                     var getDef = function () { return processedDef($state, element, rawDef); };
                     var ref = parseStateRef(attrs.uiSref);
@@ -9692,7 +9521,7 @@
                     scope.$on('$destroy', $uiRouter.transitionService.onSuccess({}, update));
                     if (!type.clickable)
                         return;
-                    hookFn = clickHook(element, $state, $timeout, type, getDef);
+                    var hookFn = clickHook(element, $state, $timeout, type, getDef);
                     bindEvents(element, scope, hookFn, rawDef.uiStateOpts);
                 },
             };
@@ -10026,9 +9855,7 @@
                                     .map(splitClasses)
                                     .reduce(unnestR, []);
                             };
-                            var allClasses = getClasses(states)
-                                .concat(splitClasses(activeEqClass))
-                                .reduce(uniqR, []);
+                            var allClasses = getClasses(states).concat(splitClasses(activeEqClass)).reduce(uniqR, []);
                             var fuzzyClasses = getClasses(states.filter(function (x) { return $state.includes(x.state.name, x.params); }));
                             var exactlyMatchesAny = !!states.filter(function (x) { return $state.is(x.state.name, x.params); }).length;
                             var exactClasses = exactlyMatchesAny ? splitClasses(activeEqClass) : [];
@@ -10089,10 +9916,7 @@
         includesFilter.$stateful = true;
         return includesFilter;
     }
-    ng
-        .module('ui.router.state')
-        .filter('isState', $IsStateFilter)
-        .filter('includedByState', $IncludedByStateFilter);
+    ng.module('ui.router.state').filter('isState', $IsStateFilter).filter('includedByState', $IncludedByStateFilter);
 
     /** @publicapi @module directives */ /** */
     /**
@@ -10221,6 +10045,7 @@
      * ```
      */
     var uiView;
+    // eslint-disable-next-line prefer-const
     uiView = [
         '$view',
         '$animate',
@@ -10228,7 +10053,7 @@
         '$interpolate',
         '$q',
         function $ViewDirective($view, $animate, $uiViewScroll, $interpolate, $q) {
-            function getRenderer(attrs, scope) {
+            function getRenderer() {
                 return {
                     enter: function (element, target, cb) {
                         if (ng.version.minor > 2) {
@@ -10264,7 +10089,7 @@
                 compile: function (tElement, tAttrs, $transclude) {
                     return function (scope, $element, attrs) {
                         var onloadExp = attrs['onload'] || '', autoScrollExp = attrs['autoscroll'], renderer = getRenderer(), inherited = $element.inheritedData('$uiView') || rootData, name = $interpolate(attrs['uiView'] || attrs['name'] || '')(scope) || '$default';
-                        var previousEl, currentEl, currentScope, viewConfig, unregister;
+                        var previousEl, currentEl, currentScope, viewConfig;
                         var activeUIView = {
                             $type: 'ng1',
                             id: directive.count++,
@@ -10293,7 +10118,7 @@
                         }
                         $element.data('$uiView', { $uiView: activeUIView });
                         updateView();
-                        unregister = $view.registerUIView(activeUIView);
+                        var unregister = $view.registerUIView(activeUIView);
                         scope.$on('$destroy', function () {
                             trace.traceUIViewEvent('Destroying/Unregistering', activeUIView);
                             unregister();
@@ -10379,9 +10204,9 @@
             return directive;
         },
     ];
-    $ViewDirectiveFill.$inject = ['$compile', '$controller', '$transitions', '$view', '$q', '$timeout'];
+    $ViewDirectiveFill.$inject = ['$compile', '$controller', '$transitions', '$view', '$q'];
     /** @hidden */
-    function $ViewDirectiveFill($compile, $controller, $transitions, $view, $q, $timeout) {
+    function $ViewDirectiveFill($compile, $controller, $transitions, $view, $q) {
         var getControllerAs = parse('viewDecl.controllerAs');
         var getResolveAs = parse('viewDecl.resolveAs');
         return {
@@ -10450,7 +10275,8 @@
     /** @hidden TODO: move these callbacks to $view and/or `/hooks/components.ts` or something */
     function registerControllerCallbacks($q, $transitions, controllerInstance, $scope, cfg) {
         // Call $onInit() ASAP
-        if (isFunction(controllerInstance.$onInit) && !((cfg.viewDecl.component || cfg.viewDecl.componentProvider) && hasComponentImpl)) {
+        if (isFunction(controllerInstance.$onInit) &&
+            !((cfg.viewDecl.component || cfg.viewDecl.componentProvider) && hasComponentImpl)) {
             controllerInstance.$onInit();
         }
         var viewState = tail(cfg.path).state.self;
@@ -10468,14 +10294,8 @@
                 var toParams = $transition$.params('to');
                 var fromParams = $transition$.params('from');
                 var getNodeSchema = function (node) { return node.paramSchema; };
-                var toSchema = $transition$
-                    .treeChanges('to')
-                    .map(getNodeSchema)
-                    .reduce(unnestR, []);
-                var fromSchema = $transition$
-                    .treeChanges('from')
-                    .map(getNodeSchema)
-                    .reduce(unnestR, []);
+                var toSchema = $transition$.treeChanges('to').map(getNodeSchema).reduce(unnestR, []);
+                var fromSchema = $transition$.treeChanges('from').map(getNodeSchema).reduce(unnestR, []);
                 // Find the to params that have different values than the from params
                 var changedToParams = toSchema.filter(function (param) {
                     var idx = fromSchema.indexOf(param);
@@ -10540,6 +10360,10 @@
     }
     ng.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider);
 
+    /**
+     * Main entry point for angular 1.x build
+     * @publicapi @module ng1
+     */ /** */
     var index$1 = 'ui.router';
 
     exports.$injector = $injector;
@@ -10710,5 +10534,5 @@
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-}));
+})));
 //# sourceMappingURL=angular-ui-router.js.map

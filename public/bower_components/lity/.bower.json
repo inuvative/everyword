@@ -41,12 +41,12 @@
     "index.html",
     "package.json"
   ],
-  "version": "2.4.0",
-  "_release": "2.4.0",
+  "version": "2.4.1",
+  "_release": "2.4.1",
   "_resolution": {
     "type": "version",
-    "tag": "v2.4.0",
-    "commit": "6f2447f81aa0982a9a17b6cbb1a00ab77ee3c6cf"
+    "tag": "v2.4.1",
+    "commit": "8b7aba815d03341dcdc642e7e12e0364f6455924"
   },
   "_source": "https://github.com/jsor/lity.git",
   "_target": "^2.4.0",

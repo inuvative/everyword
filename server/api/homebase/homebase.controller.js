@@ -155,163 +155,61 @@ exports.destroy = function(req, res) {
   });
 };
 
-exports.streamFeed = function(req,res){
-	  var owner = req.params.id;  
-	  var dt = req.query.after !== undefined ? new Date(req.query.after) : new Date();	
-	  var mm = dt.getMonth();
-	  var yyyy = dt.getFullYear();
-	  var dateQuery = req.query.after === undefined ? {"$lte":dt} : {"$lt" : dt};
-	  var dateCmp = req.query.after === undefined ? _.lte : _.lt;
-	  var feedentry_fields = [
-	                          {path: 'comment', model: 'Comment'},	                          
-	                          {path: 'media', model: 'Media'},	                          
-	                          {path: 'reference', model: 'Reference'},	                          
-	      ];
-	  
-	  var userFeed=[];
-	  Feed.findOne({"owner":owner},function(err,feed){
-		  FeedEntry.find({_id: {$in: feed.entries}, date : dateQuery}).populate('comment media reference').sort('-date').limit(20)
-		  .stream()
-		  .on('data',function(e){			      
-				  if(e.comment){
-					  Comment.populate(e.comment, [{path: 'user', model: 'User'},{path: 'group', model: 'Group'}, {path : 'remarks', model:'Remark'}], function(err, comment){
-						  Comment.populate(comment,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(comment){
-							  userFeed.push({'_id': comment._id, 'user': comment.user, 'date': comment.date, 'comment' : comment, 'likes' : comment.likes});
-						  });
-					  });
-				  }
-				  else if(e.media) {
-					  Media.populate(e.media,[{path: 'user', model: 'User'},{path: 'image', model: 'Image'},{path : 'remarks', model:'Remark'}], function(err,media){
-						  Media.populate(media,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(med){
-							  userFeed.push({'_id': med._id, 'user': med.user, 'date': med.date, 'media': med, 'likes': med.likes});
-						  });
-					  });
-				  }
-				  else if(e.reference){
-					  Reference.populate(e.reference,[{path: 'user', model: 'User'},{path : 'remarks', model:'Remark'}], function(err,reference){
-						 Reference.populate(reference,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(ref){
-							 userFeed.push({'_id': ref._id, 'user': ref.user, 'date': ref.date, 'reference': ref, 'likes': ref.likes});
-						 });
-					  });
-				  }			  
-		  })
-		  .on('end',function(){
-			  sendJSON(res,userFeed);
-		  })
-	  });
-}
-
-exports.getFeedNew = function(req, res){
-	  var owner = req.params.id;  
-	  var dt = req.query.after !== undefined ? new Date(req.query.after) : new Date();	
-	  var mm = dt.getMonth();
-	  var yyyy = dt.getFullYear();
-	  var dateQuery = req.query.after === undefined ? {"$lte":dt} : {"$lt" : dt};
-	  var dateCmp = req.query.after === undefined ? _.lte : _.lt;
-	  var feedentry_fields = [
-	                          {path: 'comment', model: 'Comment'},	                          
-	                          {path: 'media', model: 'Media'},	                          
-	                          {path: 'reference', model: 'Reference'},	                          
-	      ];
-	  Feed.aggregate([{"$match":{"owner":mongooseTypes.ObjectId(owner)}}, 
-	                  {"$unwind":"$entries"}, 
-	                  {"$match":{"entries.date":dateQuery}},
-	                  {$group:{_id:"$owner",entries:{ $addToSet: "$entries"}}}],function(err,f){
-	   		if(!f||f.length==0){
-	   			return [];
-	   		}
-	   		f=f[0];
-	   		var entries = _.orderBy(f.entries,'date','desc');
-	   		entries = _.slice(entries,0,20);
-	   		var feed=[];
-	   		each(entries, function(e,next) {
-	   		  Follow.findOne({user:e.user._id}).select('followers').exec(function(err,e2){
-	   			  e.followers=e2 && e2.followers ? e2.followers: [];
-	   			  var anno = e.comment||e.media||e.reference;
-	   			  Remark.find({$or:[{comment:anno},{media:anno},{reference:anno}]}).populate('user').exec(function(err,remarks){
-	   				  e.remarks=remarks||[];
-					  if(e.comment){
-						  Group.findOne({_id: e.comment.group}, function(err, group){
-							  e.comment.group=group;
-							  //feed.push(e);
-							  feedSocket.sendToFeed(owner,e);
-							  next();								  
-						  });
-					  }
-					  else if(e.media) {
-						  Image.findOne({_id: e.media.image}, function(err,image){
-							  e.media.image=image;
-//							  feed.push(e);
-							  feedSocket.sendToFeed(owner,e);
-							  next();
-						  });
-//					  }
-//					  else if(e.reference){
-//						  Reference.populate(e.reference,[{path: 'user', model: 'User'},{path : 'remarks', model:'Remark'}], function(err,reference){
-//							 Reference.populate(reference,[{path: 'remarks.user', select: 'name', model: 'User'}]).then(function(ref){
-//								 feed.push({'_id': ref._id, 'user': ref.user, 'date': ref.date, 'reference': ref, 'likes': ref.likes});
-//								 next();
-//							 });
-//						  });
-					  } else {
-//						  feed.push(e);
-						  feedSocket.sendToFeed(owner,e);
-						  next();						  
-					  }	   				  
-	   			  });
-	   		  });	   			
-		  },function(err){
-			  console.log("Sending feed to client")
-			  return sendJSON(res,feed);
-		  });	   			
-   		});		  
-}
-
 exports.getFeed = function(req, res){
-	  var owner = req.params.id;  
-	  NewFeed.findOne({ owner: owner},function (err, feed) {
+	  var owner = req.params.id; 
+	  
+	  Follow.findOne({ user: owner},function (err, ff) {
+		  
 		  if(err) { return handleError(res, err); }
-		  if(!feed){
-			  Comment.aggregate(
-	    			    [
-	    			        // Grouping pipeline
-	    			        { "$group": { 
-	    			            "_id": "$user", 
-	    			            "count": { "$sum": 1 }
-	    			        }},
-	    			        {"$match" : { "_id": { "$ne" : null}}},
-	    			        // Sorting pipeline
-	    			        { "$sort": { "count": -1 } },
-	    			        // Optionally limit results
-	    			        { "$limit": 20 }
-	    			    ],
-	    			    function(err,result) {
-	    			       var following=[]
-	    			       if(result){
-	    			    	   var users = _.filter(result,function(u){
-	    			    		   		return u && u._id && !u._id.equals(owner)
-	    			    		   });
-	    						  FeedEntry.find({user : { $in : users}}, function(err, entries) {
-	    							  var entryIds = _.map(entries,'id')  
-	    							  return populateFeed(req,res,entryIds)
-	    						  });
-	    			       }
-	    			    })
+		  if(req.query.friendsOnly){
+			//   var entries = _.map(feed.entries, function(e){return e.id;});
+			var following = ff.following || [];
+			return populateFeed(req,res,_.map(following, function(f) { return f.id;}));
 		  } else {
-			  var entries = _.map(feed.entries, function(e){return e.id;});
-			  return populateFeed(req,res,entries)
+			return populateFeed(req,res)
+			//FeedEntry.find({})
+			// .aggregate(
+			// 	[
+			// 		// Grouping pipeline
+			// 		{ "$group": { 
+			// 			"_id": "$user", 
+			// 			"count": { "$sum": 1 }
+			// 		}},
+			// 		{"$match" : { "_id": { "$ne" : null}}},
+			// 		// Sorting pipeline
+			// 		{ "$sort": { "count": -1 } },
+			// 		// Optionally limit results
+			// 		{ "$limit": 20 }
+			// 	],
+				// function(err,result) {
+				//    var following=[]
+				//    if(result){
+				// 	   var users = _.map(_.filter(result,function(u){
+				// 				   return u && u._id && !u._id.equals(owner)
+				// 		   }), function(u2) { return u._id;});
+				// 		return populateFeed(req,res,users)
+				// 		//   FeedEntry.find({user : { $in : users}}, function(err, entries) {
+				// 		// 	  var entryIds = _.map(entries,'id')  
+				// 		// 	  return populateFeed(req,res,entryIds)
+				// 		//   });
+				//    }
+				// })
 		  }  			 
 	  });
 }
-function populateFeed(req,res,entries){
+
+function populateFeed(req,res,users){
 	  var dt = req.query.after !== undefined ? new Date(req.query.after) : new Date();	
 	  var mm = dt.getMonth();
 	  var yyyy = dt.getFullYear();
 	  var dateQuery = req.query.after === undefined ? {"$lte":dt} : {"$lt" : dt};
 	  var populate_fields = [{ path: 'user'}, {path: 'comment'}, {path: 'media'}, {path: 'reference'}];
-	  
+	  var query = { date: dateQuery };
+	  if (users && users.length > 0) {
+		  query.user = {$in : users}
+	  }
 	 var feedEntries=[];
-  	 FeedEntry.find({_id : {$in : entries}, date: dateQuery}).lean().sort('-date').limit(20)
+  	 FeedEntry.find(query).lean().sort('-date').limit(20)
 		  	.populate('user comment media reference')
 		  	.stream()
 		  	.on('data',	function(e){
